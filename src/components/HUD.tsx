@@ -39,7 +39,15 @@ export const HUD: React.FC<HUDProps> = ({
   const canRoll = airPsi >= 1800 && !isRolling;
 
   return (
-    <div className="absolute inset-0 z-30 pointer-events-none select-none flex flex-col justify-between p-3 sm:p-5">
+    <div
+      className="absolute inset-0 z-30 pointer-events-none select-none flex flex-col justify-between p-3 sm:p-5"
+      style={{
+        paddingTop: 'max(0.75rem, var(--sat))',
+        paddingBottom: 'max(0.75rem, var(--sab))',
+        paddingLeft: 'max(0.75rem, var(--sal))',
+        paddingRight: 'max(0.75rem, var(--sar))'
+      }}
+    >
       {/* Top Streamlined Bar */}
       <div className="w-full max-w-4xl mx-auto flex items-center justify-between gap-3 pointer-events-auto">
         {/* Left: Minimal Cold-Gas Boost / PSI Meter */}

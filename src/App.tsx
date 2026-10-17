@@ -259,7 +259,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden flex flex-col items-center justify-center font-hud text-white">
+    <div className="fixed inset-0 w-full h-full min-h-[100dvh] max-h-[100dvh] bg-black overflow-hidden flex flex-col items-center justify-center font-hud text-white select-none touch-none">
       {/* Retro CRT Scanlines Overlay */}
       {scanlinesEnabled && (
         <div className="absolute inset-0 scanlines pointer-events-none z-20" />

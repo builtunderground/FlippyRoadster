@@ -86,7 +86,15 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   }, [currentSkin]);
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 bg-black/60 backdrop-blur-[2px] select-none text-white overflow-hidden touch-none">
+    <div
+      className="absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 bg-black/60 backdrop-blur-[2px] select-none text-white overflow-hidden touch-none"
+      style={{
+        paddingTop: 'max(1rem, var(--sat))',
+        paddingBottom: 'max(1rem, var(--sab))',
+        paddingLeft: 'max(1rem, var(--sal))',
+        paddingRight: 'max(1rem, var(--sar))'
+      }}
+    >
       {/* Top Bar: Clean Brand & High Score */}
       <div className="flex items-center justify-between max-w-xl w-full mx-auto">
         <div className="flex items-center gap-2">

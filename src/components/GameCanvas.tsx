@@ -24,7 +24,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   isPaused,
   triggerRollSignal
 }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastGapYRef = useRef<number | null>(null);
 
   // Core gameplay mutable refs (to run at 60fps without React state lag)
   const stateRef = useRef({
@@ -198,6 +200,63 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   }, [handleThrustStart, handleThrustEnd, performBarrelRoll]);
 
+  // Responsive full-screen canvas resolution synchronization
+  useEffect(() => {
+    const updateDimensions = () => {
+      const container = containerRef.current;
+      const canvas = canvasRef.current;
+      if (!container || !canvas) return;
+
+      const rect = container.getBoundingClientRect();
+      const w = Math.max(300, rect.width || window.innerWidth);
+      const h = Math.max(300, rect.height || window.innerHeight);
+
+      let targetW: number;
+      let targetH: number;
+
+      if (w >= h) {
+        // Landscape / Desktop: anchor logical height to 540, extend width
+        const BASE_H = 540;
+        targetH = BASE_H;
+        targetW = Math.round(BASE_H * (w / h));
+      } else {
+        // Mobile Portrait: anchor logical width to 540, extend height
+        const BASE_W = 540;
+        targetW = BASE_W;
+        targetH = Math.round(BASE_W * (h / w));
+      }
+
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+        stateRef.current.x = Math.max(90, Math.min(180, Math.round(targetW * 0.2)));
+        if (stateRef.current.y > targetH - 30) {
+          stateRef.current.y = targetH / 2;
+        }
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    window.addEventListener('orientationchange', updateDimensions);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        updateDimensions();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      window.removeEventListener('orientationchange', updateDimensions);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, []);
+
   // Main Canvas Game Loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -210,7 +269,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Reset game state when starting Countdown or Playing
     if (gameState === 'COUNTDOWN') {
       const s = stateRef.current;
-      s.x = 180;
+      s.x = Math.max(90, Math.min(180, Math.round(canvas.width * 0.2)));
       s.y = canvas.height / 2;
       s.vy = 0;
       s.angle = 0;
@@ -231,18 +290,28 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.obstacles = [];
       s.collectibles = [];
       s.particles = [];
-      s.lastSpawnX = 550;
+      s.lastSpawnX = Math.round(canvas.width * 0.65);
+      lastGapYRef.current = Math.round(canvas.height * 0.45);
     }
 
     const spawnObstacle = (spawnX: number, phase: GamePhase) => {
       const canvasH = canvas.height;
       const minTop = 60;
-      const minBottom = 60;
+      const minBottom = 75;
 
-      // Easier & wider clearance gaps (185px - 215px)
-      const gapSize = phase === 'SPACE' ? 185 : phase === 'ORBITAL' ? 198 : 215;
+      // Easier & wider clearance gaps (190px - 225px)
+      const gapSize = phase === 'SPACE' ? 190 : phase === 'ORBITAL' ? 205 : 225;
       const maxGapY = canvasH - minBottom - gapSize;
-      const gapY = Math.floor(Math.random() * (maxGapY - minTop)) + minTop;
+
+      let gapY: number;
+      if (lastGapYRef.current !== null && maxGapY > minTop) {
+        const maxDelta = Math.min(160, canvasH * 0.25);
+        const delta = (Math.random() * 2 - 1) * maxDelta;
+        gapY = Math.max(minTop, Math.min(maxGapY, Math.round(lastGapYRef.current + delta)));
+      } else {
+        gapY = Math.max(minTop, Math.floor(Math.random() * (maxGapY - minTop)) + minTop);
+      }
+      lastGapYRef.current = gapY;
 
       const topHeight = gapY;
       const bottomHeight = canvasH - (gapY + gapSize);
@@ -641,22 +710,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.textAlign = 'center';
 
         // Stage Title
-        ctx.font = '14px "Press Start 2P", monospace';
+        const isNarrow = cw < 600;
+        ctx.font = isNarrow ? '10px "Press Start 2P", monospace' : '14px "Press Start 2P", monospace';
         ctx.fillStyle = '#38BDF8';
         ctx.fillText('WACO UNVEILING LAUNCH PAD', cw / 2, ch / 2 - 90);
 
-        ctx.font = '11px "Chakra Petch", sans-serif';
+        ctx.font = isNarrow ? '10px "Chakra Petch", sans-serif' : '11px "Chakra Petch", sans-serif';
         ctx.fillStyle = '#94A3B8';
         ctx.fillText('COLD-GAS THRUSTERS ARMED · REVS NOMINAL', cw / 2, ch / 2 - 68);
 
         // Huge Countdown Number / Text
         if (sec > 0) {
           // Glow effect
-          ctx.font = 'bold 72px "Press Start 2P", monospace';
+          ctx.font = isNarrow ? 'bold 54px "Press Start 2P", monospace' : 'bold 72px "Press Start 2P", monospace';
           ctx.fillStyle = sec === 3 ? '#EF4444' : sec === 2 ? '#F59E0B' : '#10B981';
           ctx.fillText(`T-${sec}`, cw / 2, ch / 2 + 20);
 
-          ctx.font = '12px "Press Start 2P", monospace';
+          ctx.font = isNarrow ? '10px "Press Start 2P", monospace' : '12px "Press Start 2P", monospace';
           ctx.fillStyle = '#FFFFFF';
           ctx.fillText(
             sec === 3 ? 'PRESSURIZING TANK...' : sec === 2 ? 'CHECKING GIMBALS...' : 'ALL SYSTEMS GO!',
@@ -664,19 +734,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             ch / 2 + 60
           );
         } else {
-          ctx.font = 'bold 54px "Press Start 2P", monospace';
+          ctx.font = isNarrow ? 'bold 42px "Press Start 2P", monospace' : 'bold 54px "Press Start 2P", monospace';
           ctx.fillStyle = '#00F0FF';
           ctx.fillText('LIFTOFF!', cw / 2, ch / 2 + 15);
 
-          ctx.font = '13px "Press Start 2P", monospace';
+          ctx.font = isNarrow ? '11px "Press Start 2P", monospace' : '13px "Press Start 2P", monospace';
           ctx.fillStyle = '#FDE047';
           ctx.fillText('HOP TO 2028!', cw / 2, ch / 2 + 55);
         }
 
         // Keybinding helper pill on screen during countdown
-        ctx.font = '11px "Chakra Petch", monospace';
+        ctx.font = isNarrow ? '10px "Chakra Petch", monospace' : '11px "Chakra Petch", monospace';
         ctx.fillStyle = '#CBD5E1';
-        ctx.fillText('[SPACE] THRUST   ·   [B] / [SHIFT] BARREL ROLL', cw / 2, ch / 2 + 105);
+        ctx.fillText(isNarrow ? 'TAP TO FLY · DOUBLE-TAP ROLL' : '[SPACE] THRUST   ·   [B] / [SHIFT] BARREL ROLL', cw / 2, ch / 2 + 105);
 
         ctx.restore();
       }
@@ -761,6 +831,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className="relative w-full h-full flex items-center justify-center overflow-hidden cursor-pointer select-none touch-none"
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
@@ -769,9 +840,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     >
       <canvas
         ref={canvasRef}
-        width={960}
-        height={540}
-        className="w-full h-full max-w-[1440px] aspect-[16/9] object-contain pixelated bg-black"
+        className="w-full h-full pixelated bg-black block"
       />
     </div>
   );
