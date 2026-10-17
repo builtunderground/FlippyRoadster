@@ -291,26 +291,32 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.collectibles = [];
       s.particles = [];
       s.lastSpawnX = Math.round(canvas.width * 0.65);
-      lastGapYRef.current = Math.round(canvas.height * 0.45);
+      lastGapYRef.current = Math.round(canvas.height * 0.5 - 105);
     }
 
     const spawnObstacle = (spawnX: number, phase: GamePhase) => {
       const canvasH = canvas.height;
-      const minTop = 60;
-      const minBottom = 75;
+      const centerY = canvasH * 0.5;
 
-      // Easier & wider clearance gaps (190px - 225px)
-      const gapSize = phase === 'SPACE' ? 190 : phase === 'ORBITAL' ? 205 : 225;
-      const maxGapY = canvasH - minBottom - gapSize;
+      // Clearance gap (195px - 225px)
+      const gapSize = phase === 'SPACE' ? 195 : phase === 'ORBITAL' ? 208 : 225;
 
-      let gapY: number;
-      if (lastGapYRef.current !== null && maxGapY > minTop) {
-        const maxDelta = Math.min(160, canvasH * 0.25);
-        const delta = (Math.random() * 2 - 1) * maxDelta;
-        gapY = Math.max(minTop, Math.min(maxGapY, Math.round(lastGapYRef.current + delta)));
+      // Center the focal area at the vertical center of the screen
+      // Constrains gap center to a comfortable window around centerY
+      const maxFocalSpan = Math.min(180, canvasH * 0.32);
+      const minCenter = centerY - maxFocalSpan / 2;
+      const maxCenter = centerY + maxFocalSpan / 2;
+
+      let gapCenter: number;
+      if (lastGapYRef.current !== null) {
+        const lastCenter = lastGapYRef.current + gapSize / 2;
+        const delta = (Math.random() * 2 - 1) * 55;
+        gapCenter = Math.max(minCenter, Math.min(maxCenter, Math.round(lastCenter + delta)));
       } else {
-        gapY = Math.max(minTop, Math.floor(Math.random() * (maxGapY - minTop)) + minTop);
+        gapCenter = centerY;
       }
+
+      const gapY = Math.round(gapCenter - gapSize / 2);
       lastGapYRef.current = gapY;
 
       const topHeight = gapY;
@@ -515,13 +521,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           s.lastSpawnX = spawnX;
         }
 
-        // Screen boundaries collision check
-        if (s.y < 12) {
-          s.y = 12;
+        // Screen boundaries collision check:
+        // Focal area is centered vertically; crash if falling too far below the central flight zone
+        const maxDown = Math.min(ch - 16, Math.round(ch * 0.5 + 240));
+        const minUp = Math.max(12, Math.round(ch * 0.5 - 240));
+
+        if (s.y < minUp) {
+          s.y = minUp;
           s.vy = 0;
         }
-        if (s.y > ch - 16) {
-          // Crashed into ground!
+        if (s.y > maxDown) {
+          // Crashed into ground or bottom barrier!
           triggerCrash();
         }
 

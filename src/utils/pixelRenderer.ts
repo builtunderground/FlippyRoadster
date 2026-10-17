@@ -7,18 +7,18 @@ export const SKINS: Skin[] = [
   {
     id: 'ano_white',
     name: 'Ano White',
-    description: 'Default matte white bodywork with titanium highlights and gold-tinted canopy glass.',
+    description: 'Crisp white bodywork with titanium grey trim and smoked grey aerodynamic glass.',
     unlockScore: 0,
-    bodyColor: '#F0F2F5',
-    accentColor: '#1A1C20',
-    canopyColor: '#E6A817', // Gold-tinted canopy
-    wheelColor: '#111215'
+    bodyColor: '#FFFFFF',
+    accentColor: '#94A3B8', // Titanium grey
+    canopyColor: '#475569', // Smoked cool grey glass (no yellow)
+    wheelColor: '#1E293B'  // Dark slate grey
   },
   {
     id: 'ultra_red',
     name: 'Ultra Red',
     description: 'Multicoat deep metallic red celebrating the original 2017 unveiling prototype.',
-    unlockScore: 25,
+    unlockScore: 0,
     bodyColor: '#D01018',
     accentColor: '#1E1E1E',
     canopyColor: '#2B3A4A',
@@ -28,7 +28,7 @@ export const SKINS: Skin[] = [
     id: 'stainless',
     name: 'SpaceX Stainless',
     description: 'Cold-rolled 301 stainless steel mirror skin matched to Starship flight vehicles.',
-    unlockScore: 50,
+    unlockScore: 0,
     bodyColor: '#C4CED8',
     accentColor: '#50565F',
     canopyColor: '#1F2937',
@@ -39,7 +39,7 @@ export const SKINS: Skin[] = [
     id: 'starman',
     name: 'Starman Edition',
     description: 'Midnight Cherry Red with spacesuit pilot in the cockpit, en route to Mars.',
-    unlockScore: 75,
+    unlockScore: 0,
     bodyColor: '#8B0000',
     accentColor: '#E2E8F0',
     canopyColor: '#38BDF8',
@@ -1152,17 +1152,15 @@ export class PixelRenderer {
       ctx.font = 'bold 10px "Press Start 2P", monospace';
       ctx.fillText('SPACEX', cyberSignX + 80, height - 122);
 
-      // Industrial steam vent tower releasing vapor
+      // Industrial vent tower with warning beacon
       ctx.fillStyle = '#1E293B';
       ctx.fillRect(cyberSignX + 190, height - 210, 22, 140);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-      for (let s = 0; s < 4; s++) {
-        const puffY = height - 210 - (s * 15) - ((frameTick * 1.5 + s * 10) % 25);
-        const puffSize = 8 + s * 4;
-        ctx.beginPath();
-        ctx.arc(cyberSignX + 201 + Math.sin(frameTick * 0.1 + s) * 6, puffY, puffSize, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(cyberSignX + 188, height - 214, 26, 4);
+      // Warning beacon light on top of vent
+      const ventBlink = Math.sin(frameTick * 0.15) > 0;
+      ctx.fillStyle = ventBlink ? '#EF4444' : '#581C87';
+      ctx.fillRect(cyberSignX + 199, height - 218, 4, 4);
 
       // NEAR BG (LAYER 3, scroll * 0.4): Staging Runway, Hazard Stripes & Cheering Crowds
       ctx.fillStyle = '#080A12';
@@ -1381,7 +1379,7 @@ export class PixelRenderer {
     ctx.restore();
   }
 
-  // Draw Particles (exhaust, sparks, smoke, explosion)
+  // Draw Particles (exhaust, sparks, debris, explosion) - all sharp arcade pixels
   public static drawParticles(
     ctx: CanvasRenderingContext2D,
     particles: Particle[]
@@ -1390,15 +1388,8 @@ export class PixelRenderer {
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.alpha);
       ctx.fillStyle = p.color;
-
-      if (p.type === 'smoke') {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        // Pixel block for arcade look
-        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-      }
+      // Pixel block for authentic crisp arcade look
+      ctx.fillRect(Math.round(p.x - p.size / 2), Math.round(p.y - p.size / 2), p.size, p.size);
     }
     ctx.restore();
   }
