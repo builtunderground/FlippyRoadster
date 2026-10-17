@@ -56,7 +56,6 @@ export const StartScreen: React.FC<StartScreenProps> = ({
     const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
     const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
 
-    // Only trigger if horizontal swipe is dominant and significant (>30px)
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
       if (deltaX > 0) {
         handlePrevSkin();
@@ -115,7 +114,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
 
   return (
     <div
-      className="absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 bg-black/60 backdrop-blur-[2px] select-none text-white overflow-hidden"
+      className="absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-b from-black/50 via-black/25 to-black/75 select-none text-white overflow-hidden"
       style={{
         paddingTop: 'max(1rem, var(--sat))',
         paddingBottom: 'max(1rem, var(--sab))',
@@ -126,17 +125,17 @@ export const StartScreen: React.FC<StartScreenProps> = ({
       {/* Top Bar: Clean Brand & High Score */}
       <div className="flex items-center justify-between max-w-xl w-full mx-auto pointer-events-auto">
         <div className="flex items-center gap-2">
-          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-red-600">
+          <svg viewBox="0 0 24 24" className="w-5 h-5 fill-red-600 drop-shadow-[0_0_8px_rgba(232,33,39,0.5)]">
             <path d="M12 2C8.5 2 5.5 3 3 5l2 3c2-1.5 4.5-2.2 7-2.2s5 .7 7 2.2l2-3C18.5 3 15.5 2 12 2zm0 6c-2 0-3.8.5-5.3 1.5L8 12.2c1.2-.8 2.6-1.2 4-1.2s2.8.4 4 1.2l1.3-2.7C15.8 8.5 14 8 12 8zm-1 6v8h2v-8h-2z" />
           </svg>
-          <span className="font-mono text-[11px] sm:text-xs uppercase tracking-widest text-slate-300">
-            Tesla x SpaceX
+          <span className="font-tech font-bold text-xs uppercase tracking-widest text-slate-200">
+            TESLA x SPACEX
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 px-3 py-1 rounded-full text-xs font-mono">
-          <span className="text-slate-400 text-[10px]">BEST:</span>
-          <span className="text-cyan-400 font-bold font-pixel text-xs">{highScore} FT</span>
+        <div className="flex items-center gap-1.5 bg-black/80 border border-white/10 px-3.5 py-1 rounded-full text-xs shadow-lg">
+          <span className="text-slate-400 text-[10px] font-label">BEST:</span>
+          <span className="text-white font-display font-bold text-sm tracking-wide">{highScore} FT</span>
         </div>
       </div>
 
@@ -147,7 +146,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           <img
             src={`${import.meta.env.BASE_URL}images/FlippyRoadster-PixelLogo.png`}
             alt="Flippy Roadster"
-            className="h-14 sm:h-20 w-auto object-contain pixelated drop-shadow-[0_0_20px_rgba(232,33,39,0.5)]"
+            className="h-16 sm:h-22 w-auto object-contain pixelated drop-shadow-[0_0_24px_rgba(232,33,39,0.6)]"
             onError={(e) => {
               const target = e.currentTarget;
               if (!target.src.includes('tristanvogt.com')) {
@@ -157,15 +156,15 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           />
         </div>
 
-        <p className="font-retro text-cyan-300 text-[11px] sm:text-xs tracking-widest mb-4 sm:mb-5">
-          HOP TO 2028 · SPACEX PACKAGE
+        <p className="font-tech font-bold text-slate-300 text-xs tracking-widest mb-4 sm:mb-5">
+          PRODUCT UNVEILING · TEXAS LAUNCH COMPLEX
         </p>
 
-        {/* Big Touch-Friendly Launch Button */}
+        {/* Big Touch-Friendly Launch Button: Chakra Petch Bold */}
         <button
           type="button"
           onClick={onStartGame}
-          className="w-full flex items-center justify-center gap-3 bg-red-600 hover:bg-red-500 active:scale-95 text-white py-3.5 sm:py-4 px-8 rounded-xl border-2 border-red-400 font-pixel text-sm sm:text-base shadow-[0_0_25px_rgba(232,33,39,0.55)] cursor-pointer transition-all mb-4 animate-pulse touch-manipulation"
+          className="w-full flex items-center justify-center gap-3 bg-red-600 hover:bg-red-500 active:scale-95 text-white py-3.5 sm:py-4 px-8 rounded-xl border border-red-400 font-tech font-bold text-base sm:text-lg tracking-wider shadow-[0_0_30px_rgba(232,33,39,0.5)] cursor-pointer transition-all mb-4 touch-manipulation"
         >
           <Play className="w-5 h-5 fill-white" />
           <span>LAUNCH</span>
@@ -175,10 +174,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         <div
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col items-center shadow-lg select-none"
+          className="w-full bg-black/80 border border-white/10 rounded-xl p-3 flex flex-col items-center shadow-2xl select-none"
         >
           <div className="flex items-center justify-between w-full mb-1">
-            <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">
+            <span className="text-[10px] font-tech font-bold text-slate-300 uppercase tracking-widest">
               SELECT VEHICLE
             </span>
             <span className="text-[10px] font-mono text-slate-400">
@@ -195,10 +194,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                 e.preventDefault();
                 handlePrevSkin();
               }}
-              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800/90 active:bg-cyan-600 hover:bg-slate-700 border border-slate-700 active:scale-90 text-white shadow-md cursor-pointer transition-all touch-manipulation"
+              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl bg-white/5 active:bg-white/15 hover:bg-white/10 border border-white/10 active:scale-90 text-white shadow-md cursor-pointer transition-all touch-manipulation"
               aria-label="Previous Vehicle"
             >
-              <ChevronLeft className="w-6 h-6 text-cyan-300" />
+              <ChevronLeft className="w-6 h-6 text-slate-300" />
             </button>
 
             {/* Vehicle Interactive Preview Card */}
@@ -213,7 +212,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                 height={52}
                 className="pixelated w-36 sm:w-44 h-auto"
               />
-              <span className="font-pixel text-xs text-white mt-1 drop-shadow-sm">
+              <span className="font-tech font-bold text-sm text-white mt-1 drop-shadow-sm tracking-wider">
                 {currentSkin.name}
               </span>
             </div>
@@ -226,16 +225,16 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                 e.preventDefault();
                 handleNextSkin();
               }}
-              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800/90 active:bg-cyan-600 hover:bg-slate-700 border border-slate-700 active:scale-90 text-white shadow-md cursor-pointer transition-all touch-manipulation"
+              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl bg-white/5 active:bg-white/15 hover:bg-white/10 border border-white/10 active:scale-90 text-white shadow-md cursor-pointer transition-all touch-manipulation"
               aria-label="Next Vehicle"
             >
-              <ChevronRight className="w-6 h-6 text-cyan-300" />
+              <ChevronRight className="w-6 h-6 text-slate-300" />
             </button>
           </div>
 
           {/* Quick Dots Selector */}
           <div className="flex items-center gap-2 mt-2 py-1">
-            {SKINS.map((skin, idx) => {
+            {SKINS.map((skin) => {
               const isCurrent = skin.id === currentSkin.id;
               return (
                 <button
@@ -247,10 +246,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                     soundEngine.playScore();
                   }}
                   title={skin.name}
-                  className={`h-2.5 rounded-full transition-all cursor-pointer touch-manipulation p-0.5 ${
+                  className={`h-2 rounded-full transition-all cursor-pointer touch-manipulation p-0.5 ${
                     isCurrent
-                      ? 'w-7 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)]'
-                      : 'w-2.5 bg-slate-700 hover:bg-slate-500'
+                      ? 'w-7 bg-red-600 shadow-[0_0_8px_rgba(232,33,39,0.8)]'
+                      : 'w-2 bg-white/20 hover:bg-white/40'
                   }`}
                   aria-label={`Select ${skin.name}`}
                 />
@@ -261,20 +260,20 @@ export const StartScreen: React.FC<StartScreenProps> = ({
       </div>
 
       {/* Bottom Minimal Footer: Simple Audio Toggle & Quick Controls Tip */}
-      <div className="max-w-xl w-full mx-auto flex items-center justify-between text-xs font-mono text-slate-400 pt-2 border-t border-slate-800/60 pointer-events-auto">
+      <div className="max-w-xl w-full mx-auto flex items-center justify-between text-xs font-mono text-slate-400 pt-2 border-t border-white/10 pointer-events-auto">
         <div className="text-[11px] text-slate-300 flex items-center gap-2">
-          <span className="hidden sm:inline">Controls:</span>
-          <span>Tap to Fly · Double-Tap or [B] to Roll</span>
+          <span className="hidden sm:inline text-slate-400">Controls:</span>
+          <span>Tap / Space to Fly · Double-Tap or [B] to Roll</span>
         </div>
 
         <button
           type="button"
           onClick={onToggleMute}
-          className="p-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation"
+          className="p-2 rounded-lg bg-black/80 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer touch-manipulation"
           title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
         >
-          {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
-          <span className="text-[10px] hidden sm:inline">{isMuted ? 'MUTED' : 'SOUND'}</span>
+          {isMuted ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4 text-slate-300" />}
+          <span className="text-[10px] hidden sm:inline font-mono">{isMuted ? 'MUTED' : 'SOUND'}</span>
         </button>
       </div>
     </div>

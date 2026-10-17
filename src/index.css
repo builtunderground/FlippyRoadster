@@ -34,14 +34,20 @@ html, body {
 }
 
 @layer utilities {
+  .font-display,
   .font-pixel {
-    font-family: 'Press Start 2P', monospace;
+    font-family: 'Pixelify Sans', sans-serif;
   }
+  .font-tech,
+  .font-hud {
+    font-family: 'Chakra Petch', sans-serif;
+  }
+  .font-label,
   .font-retro {
     font-family: 'Silkscreen', monospace;
   }
-  .font-hud {
-    font-family: 'Chakra Petch', sans-serif;
+  .font-mono {
+    font-family: 'Space Mono', monospace;
   }
   .pixelated {
     image-rendering: -moz-crisp-edges;

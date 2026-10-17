@@ -721,41 +721,40 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         // Stage Title
         const isNarrow = cw < 600;
-        ctx.font = isNarrow ? '10px "Press Start 2P", monospace' : '14px "Press Start 2P", monospace';
-        ctx.fillStyle = '#38BDF8';
+        ctx.font = isNarrow ? 'bold 12px "Chakra Petch", sans-serif' : 'bold 16px "Chakra Petch", sans-serif';
+        ctx.fillStyle = '#FFFFFF';
         ctx.fillText('WACO UNVEILING LAUNCH PAD', cw / 2, ch / 2 - 90);
 
-        ctx.font = isNarrow ? '10px "Chakra Petch", sans-serif' : '11px "Chakra Petch", sans-serif';
+        ctx.font = isNarrow ? '10px "Space Mono", monospace' : '11px "Space Mono", monospace';
         ctx.fillStyle = '#94A3B8';
         ctx.fillText('COLD-GAS THRUSTERS ARMED · REVS NOMINAL', cw / 2, ch / 2 - 68);
 
         // Huge Countdown Number / Text
         if (sec > 0) {
-          // Glow effect
-          ctx.font = isNarrow ? 'bold 54px "Press Start 2P", monospace' : 'bold 72px "Press Start 2P", monospace';
+          ctx.font = isNarrow ? 'bold 64px "Pixelify Sans", sans-serif' : 'bold 88px "Pixelify Sans", sans-serif';
           ctx.fillStyle = sec === 3 ? '#EF4444' : sec === 2 ? '#F59E0B' : '#10B981';
           ctx.fillText(`T-${sec}`, cw / 2, ch / 2 + 20);
 
-          ctx.font = isNarrow ? '10px "Press Start 2P", monospace' : '12px "Press Start 2P", monospace';
-          ctx.fillStyle = '#FFFFFF';
+          ctx.font = isNarrow ? '10px "Space Mono", monospace' : '11px "Space Mono", monospace';
+          ctx.fillStyle = '#E2E8F0';
           ctx.fillText(
-            sec === 3 ? 'PRESSURIZING TANK...' : sec === 2 ? 'CHECKING GIMBALS...' : 'ALL SYSTEMS GO!',
+            sec === 3 ? 'PRESSURIZING TANK...' : sec === 2 ? 'CHECKING GIMBALS...' : 'ALL SYSTEMS GO',
             cw / 2,
             ch / 2 + 60
           );
         } else {
-          ctx.font = isNarrow ? 'bold 42px "Press Start 2P", monospace' : 'bold 54px "Press Start 2P", monospace';
-          ctx.fillStyle = '#00F0FF';
-          ctx.fillText('LIFTOFF!', cw / 2, ch / 2 + 15);
+          ctx.font = isNarrow ? 'bold 52px "Pixelify Sans", sans-serif' : 'bold 72px "Pixelify Sans", sans-serif';
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillText('LIFTOFF!', cw / 2, ch / 2 + 18);
 
-          ctx.font = isNarrow ? '11px "Press Start 2P", monospace' : '13px "Press Start 2P", monospace';
-          ctx.fillStyle = '#FDE047';
-          ctx.fillText('HOP TO 2028!', cw / 2, ch / 2 + 55);
+          ctx.font = isNarrow ? 'bold 13px "Chakra Petch", sans-serif' : 'bold 16px "Chakra Petch", sans-serif';
+          ctx.fillStyle = '#E82127';
+          ctx.fillText('HOP TO 2028', cw / 2, ch / 2 + 58);
         }
 
         // Keybinding helper pill on screen during countdown
-        ctx.font = isNarrow ? '10px "Chakra Petch", monospace' : '11px "Chakra Petch", monospace';
-        ctx.fillStyle = '#CBD5E1';
+        ctx.font = isNarrow ? '10px "Space Mono", monospace' : '11px "Space Mono", monospace';
+        ctx.fillStyle = '#94A3B8';
         ctx.fillText(isNarrow ? 'TAP TO FLY · DOUBLE-TAP ROLL' : '[SPACE] THRUST   ·   [B] / [SHIFT] BARREL ROLL', cw / 2, ch / 2 + 105);
 
         ctx.restore();

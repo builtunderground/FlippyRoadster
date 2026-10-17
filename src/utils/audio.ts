@@ -31,8 +31,20 @@ class SoundEngine {
 
   public setMuted(muted: boolean) {
     this.isMuted = muted;
-    if (muted && this.musicInterval) {
+    if (muted) {
+      if (this.customAudio) {
+        this.customAudio.pause();
+      }
       this.stopMusic();
+      try {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      } catch {}
+    } else {
+      if (!this.isMusicMuted && this.customAudio) {
+        this.customAudio.play().catch(() => {});
+      }
     }
   }
 
@@ -40,7 +52,7 @@ class SoundEngine {
     this.isMusicMuted = muted;
     if (muted) {
       this.stopMusic();
-    } else {
+    } else if (!this.isMuted) {
       this.startMusic();
     }
   }
@@ -329,7 +341,7 @@ class SoundEngine {
   }
 
   public startMusic() {
-    if (this.isMusicMuted) return;
+    if (this.isMusicMuted || this.isMuted) return;
 
     if (!this.customAudio && this.customAudioUrl) {
       const audio = new Audio(this.customAudioUrl);

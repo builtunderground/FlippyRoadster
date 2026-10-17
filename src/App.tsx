@@ -116,7 +116,7 @@ export default function App() {
     setCurrentPhase('WACO');
     setGameState('COUNTDOWN');
 
-    if (!isMusicMuted) {
+    if (!isMusicMuted && !isMuted) {
       soundEngine.startMusic();
     }
   };

@@ -253,7 +253,7 @@ export class PixelRenderer {
     ctx.restore();
   }
 
-  // Draw Bottom Obstacle (Fleet stacks: Cybertruck, Model 3 stack, Cybercab, Semi, Platform)
+  // Draw Bottom Obstacle: Modular industrial stage scaffolding, red LED-edged structures & vehicle display racks
   public static drawBottomObstacle(
     ctx: CanvasRenderingContext2D,
     obs: Obstacle,
@@ -267,57 +267,84 @@ export class PixelRenderer {
 
     ctx.save();
 
-    // Base industrial staging platform beneath all fleet obstacles
-    ctx.fillStyle = '#111827';
-    ctx.fillRect(x - 4, y, w + 8, h);
+    // 1. Modular Industrial Stage Riser / Scaffolding Plinth
+    // Dark matte structural charcoal finish
+    ctx.fillStyle = '#090D16';
+    ctx.fillRect(x - 2, y, w + 4, h);
 
-    // Steel truss structure
-    ctx.strokeStyle = '#374151';
+    // Inner structural deck panel
+    ctx.fillStyle = '#101624';
+    ctx.fillRect(x, y + 4, w, h - 4);
+
+    // Tubular steel cross-bracing truss on vertical face
+    ctx.strokeStyle = '#222E42';
     ctx.lineWidth = 2;
-    ctx.strokeRect(x, y + 10, w, h - 10);
-
-    // Warning hazard stripes at platform base edge
-    const stripeWidth = 12;
-    for (let sx = x; sx < x + w; sx += stripeWidth * 2) {
-      ctx.fillStyle = '#EAB308'; // Warning yellow
-      ctx.fillRect(sx, y, stripeWidth, 5);
-      ctx.fillStyle = '#18181B'; // Black stripe
-      ctx.fillRect(sx + stripeWidth, y, stripeWidth, 5);
-    }
-
-    // Red warning beacons flashing on top corners
-    const beaconBlink = Math.sin(frameTick * 0.15) > 0;
-    ctx.fillStyle = beaconBlink ? '#EF4444' : '#7F1D1D';
-    ctx.fillRect(x + 2, y - 6, 6, 6);
-    ctx.fillRect(x + w - 8, y - 6, 6, 6);
-    if (beaconBlink) {
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+    const braceStep = 32;
+    for (let by = y + 8; by < canvasHeight - 12; by += braceStep) {
+      const bh = Math.min(braceStep, canvasHeight - by);
+      ctx.strokeRect(x + 2, by, w - 4, bh);
       ctx.beginPath();
-      ctx.arc(x + 5, y - 3, 10, 0, Math.PI * 2);
-      ctx.arc(x + w - 5, y - 3, 10, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(x + 2, by);
+      ctx.lineTo(x + w - 2, by + bh);
+      ctx.moveTo(x + w - 2, by);
+      ctx.lineTo(x + 2, by + bh);
+      ctx.stroke();
     }
 
-    // Specific Fleet stack graphic
+    // Vertical structural corner pillars
+    ctx.fillStyle = '#1E293B';
+    ctx.fillRect(x, y + 2, 4, h - 2);
+    ctx.fillRect(x + w - 4, y + 2, 4, h - 2);
+
+    // Continuous Tesla-Red LED Edge Runner along top platform lip
+    ctx.fillStyle = '#E82127';
+    ctx.fillRect(x - 2, y, w + 4, 3);
+    // Subtle red LED glow line
+    ctx.fillStyle = 'rgba(232, 33, 39, 0.4)';
+    ctx.fillRect(x - 2, y - 1, w + 4, 1);
+
+    // Red vertical corner beacon bars
+    const cornerStrobe = Math.sin(frameTick * 0.18) > 0;
+    ctx.fillStyle = cornerStrobe ? '#EF4444' : '#7F1D1D';
+    ctx.fillRect(x, y - 4, 3, 4);
+    ctx.fillRect(x + w - 3, y - 4, 3, 4);
+
+    // 2. Specific Staged Vehicle / Equipment Presentation on top of plinth
     switch (obs.bottomType) {
       case 'cybertruck': {
-        // Angular Cybertruck parked on top of platform
-        const cy = y - 28;
+        // Cybertruck on Illuminated Presentation Plinth
+        const cy = y - 30;
         const cx = x + (w - 74) / 2;
 
-        // Stainless triangular body
+        // Harsh white stage uplighting pool beneath vehicle
+        ctx.fillStyle = 'rgba(248, 250, 252, 0.18)';
+        ctx.fillRect(cx - 2, y - 4, 78, 4);
+
+        // Stainless triangular exoskeleton
         ctx.fillStyle = '#94A3B8';
         ctx.beginPath();
         ctx.moveTo(cx, cy + 24); // rear bottom
         ctx.lineTo(cx + 4, cy + 12); // rear tailgate
-        ctx.lineTo(cx + 34, cy + 2); // apex roof roofline
+        ctx.lineTo(cx + 34, cy + 2); // apex roofline
         ctx.lineTo(cx + 70, cy + 16); // front hood tip
         ctx.lineTo(cx + 72, cy + 24); // front bumper
         ctx.closePath();
         ctx.fill();
 
-        // Dark window glass
-        ctx.fillStyle = '#0F172A';
+        // Faceted metallic body shading
+        ctx.fillStyle = '#CBD5E1';
+        ctx.beginPath();
+        ctx.moveTo(cx + 4, cy + 12);
+        ctx.lineTo(cx + 34, cy + 2);
+        ctx.lineTo(cx + 70, cy + 16);
+        ctx.lineTo(cx + 66, cy + 18);
+        ctx.lineTo(cx + 34, cy + 6);
+        ctx.lineTo(cx + 6, cy + 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Dark smoked glass canopy
+        ctx.fillStyle = '#0A0E17';
         ctx.beginPath();
         ctx.moveTo(cx + 20, cy + 13);
         ctx.lineTo(cx + 34, cy + 5);
@@ -325,152 +352,178 @@ export class PixelRenderer {
         ctx.closePath();
         ctx.fill();
 
-        // Signature horizontal lightbar
-        ctx.fillStyle = '#F8FAFC';
+        // Signature full-width stark white LED lightbar
+        ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(cx + 66, cy + 16, 6, 2);
 
-        // Chunky angular wheels
-        ctx.fillStyle = '#090A0C';
+        // Rear red lightblade accent
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(cx + 3, cy + 12, 2, 3);
+
+        // Dark angular aero wheels
+        ctx.fillStyle = '#06080D';
         ctx.fillRect(cx + 10, cy + 20, 14, 10);
         ctx.fillRect(cx + 50, cy + 20, 14, 10);
         break;
       }
 
       case 'semi': {
-        // Tesla Semi
+        // Tesla Semi Heavy Freight Presentation
         const sy = y - 48;
-        const sx = x + (w - 80) / 2;
+        const sx = x + (w - 78) / 2;
 
-        // Tall aero cab
-        ctx.fillStyle = '#F1F5F9';
-        ctx.fillRect(sx + 10, sy + 6, 60, 42);
-        ctx.fillStyle = '#0F172A'; // Panoramic wrap windshield
-        ctx.fillRect(sx + 35, sy + 10, 32, 18);
+        // Aerodynamic high-roof cab
+        ctx.fillStyle = '#E2E8F0';
+        ctx.fillRect(sx + 10, sy + 6, 58, 42);
 
-        // Roof wind fairing
-        ctx.fillStyle = '#CBD5E1';
-        ctx.fillRect(sx + 10, sy, 55, 6);
+        // Deep panoramic wrap windshield
+        ctx.fillStyle = '#0A0E1A';
+        ctx.fillRect(sx + 34, sy + 10, 32, 18);
 
-        // Rear chassis
-        ctx.fillStyle = '#334155';
+        // Roof wind-deflector fairing
+        ctx.fillStyle = '#94A3B8';
+        ctx.fillRect(sx + 10, sy, 54, 6);
+
+        // Rear chassis & trailer fifth wheel
+        ctx.fillStyle = '#1E293B';
         ctx.fillRect(sx, sy + 28, 20, 20);
 
+        // White front LED bar & red marker lights
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(sx + 64, sy + 28, 4, 3);
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(sx + 12, sy + 2, 3, 2);
+        ctx.fillRect(sx + 24, sy + 2, 3, 2);
+
         // Wheels
-        ctx.fillStyle = '#020617';
+        ctx.fillStyle = '#05070C';
         ctx.fillRect(sx + 4, sy + 38, 12, 12);
         ctx.fillRect(sx + 48, sy + 38, 14, 12);
         break;
       }
 
       case 'cybercab': {
-        // Futuristic Cybercab robotaxi (gold body, no steering wheel, camera fins)
+        // Autonomous Cybercab Display Dais
         const ccy = y - 24;
         const ccx = x + (w - 68) / 2;
 
-        // Gold-bronze body
+        // Circular illuminated display dais
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(ccx - 2, y - 3, 72, 3);
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(ccx - 2, y - 1, 72, 1);
+
+        // Gold-bronze aerodynamic body
         ctx.fillStyle = '#D97706';
         ctx.beginPath();
-        ctx.roundRect(ccx, ccy + 6, 64, 16, 6);
+        ctx.roundRect(ccx, ccy + 6, 64, 16, 5);
         ctx.fill();
 
-        // Dark flush glass canopy
-        ctx.fillStyle = '#111827';
+        // Dark smoked glass canopy
+        ctx.fillStyle = '#0A0E17';
         ctx.fillRect(ccx + 18, ccy, 30, 8);
 
-        // Continuous full-width LED strip
-        ctx.fillStyle = '#FEF08A';
+        // Full-width horizontal LED lightbar
+        ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(ccx + 58, ccy + 9, 6, 2);
 
         // Solid aero wheels
-        ctx.fillStyle = '#B45309';
-        ctx.beginPath();
-        ctx.arc(ccx + 16, ccy + 22, 6, 0, Math.PI * 2);
-        ctx.arc(ccx + 48, ccy + 22, 6, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = '#0B0F19';
+        ctx.fillRect(ccx + 12, ccy + 18, 10, 8);
+        ctx.fillRect(ccx + 44, ccy + 18, 10, 8);
         break;
       }
 
       case 'generator': {
-        // Industrial Cryogenic Power Substation / Generator (from pixel tileset)
+        // High-Voltage Hydraulic Power Substation / Cryo Manifold
         const gy = y - 38;
         const gx = x + (w - 68) / 2;
 
-        // Main chassis
-        ctx.fillStyle = '#1E293B';
+        // Heavy steel chassis
+        ctx.fillStyle = '#0F172A';
         ctx.fillRect(gx, gy + 8, 68, 30);
 
-        // Top cooling radiator block
-        ctx.fillStyle = '#0F172A';
+        // Brushed steel cooling manifold
+        ctx.fillStyle = '#334155';
         ctx.fillRect(gx + 6, gy, 56, 8);
 
-        // Glowing cyan energy core vent
-        const coreGlow = Math.sin(frameTick * 0.1) * 0.2 + 0.8;
-        ctx.fillStyle = `rgba(6, 182, 212, ${coreGlow})`;
-        ctx.fillRect(gx + 12, gy + 14, 20, 16);
+        // High-pressure pipe runs
+        ctx.fillStyle = '#64748B';
+        ctx.fillRect(gx + 8, gy + 12, 52, 3);
 
-        // Warning chevrons on front panel
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(gx + 40, gy + 14, 22, 6);
-        ctx.fillStyle = '#18181B';
-        ctx.fillRect(gx + 46, gy + 14, 6, 6);
+        // Red emergency status indicator panel
+        const genBlink = Math.sin(frameTick * 0.15) > 0;
+        ctx.fillStyle = genBlink ? '#E82127' : '#5B1116';
+        ctx.fillRect(gx + 12, gy + 18, 20, 8);
 
-        // Status indicator LEDs
-        ctx.fillStyle = '#10B981';
-        ctx.fillRect(gx + 40, gy + 24, 4, 4);
-        ctx.fillStyle = Math.sin(frameTick * 0.2) > 0 ? '#EF4444' : '#7F1D1D';
-        ctx.fillRect(gx + 48, gy + 24, 4, 4);
+        // Analog telemetry dial
+        ctx.fillStyle = '#F8FAFC';
+        ctx.fillRect(gx + 40, gy + 18, 18, 8);
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(gx + 48, gy + 20, 2, 4);
         break;
       }
 
       case 'battery_pack': {
-        // Megapack Energy Storage Unit (from pixel tileset)
-        const by = y - 34;
-        const bx = x + (w - 70) / 2;
+        // Megapack Industrial Energy Storage Plinth
+        const by = y - 36;
+        const bx = x + (w - 72) / 2;
 
-        // Clean white/gray industrial enclosure
-        ctx.fillStyle = '#E2E8F0';
-        ctx.fillRect(bx, by + 6, 70, 28);
+        // Architectural matte white modular enclosure
+        ctx.fillStyle = '#F1F5F9';
+        ctx.fillRect(bx, by + 4, 72, 32);
 
-        // Recessed cooling vents
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(bx + 8, by + 12, 16, 16);
-        ctx.fillRect(bx + 28, by + 12, 16, 16);
-        ctx.fillRect(bx + 48, by + 12, 16, 16);
+        // Recessed dark horizontal cooling louvers
+        ctx.fillStyle = '#1E293B';
+        ctx.fillRect(bx + 8, by + 10, 16, 18);
+        ctx.fillRect(bx + 28, by + 10, 16, 18);
+        ctx.fillRect(bx + 48, by + 10, 16, 18);
 
-        // Green LED charge level meter bars
-        ctx.fillStyle = '#22C55E';
-        for (let seg = 0; seg < 4; seg++) {
-          ctx.fillRect(bx + 10 + seg * 14, by + 8, 10, 2);
-        }
+        // Clean status indicator LEDs (Green active, Red telemetry)
+        ctx.fillStyle = '#10B981';
+        ctx.fillRect(bx + 10, by + 6, 8, 2);
+        ctx.fillRect(bx + 30, by + 6, 8, 2);
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(bx + 50, by + 6, 8, 2);
 
-        // Base mounting brackets
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(bx - 2, by + 30, 74, 4);
+        // Base industrial mounting brackets
+        ctx.fillStyle = '#0A0E17';
+        ctx.fillRect(bx - 2, by + 32, 76, 4);
         break;
       }
 
       case 'model3_stack':
       default: {
-        // Multi-tiered Model 3 transporter rack
-        const stackY = y - 42;
-        const stackX = x + (w - 64) / 2;
+        // Multi-Tier Hydraulic Vehicle Presentation Rack
+        const stackY = y - 44;
+        const stackX = x + (w - 68) / 2;
 
-        // Tier 1 sedan
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(stackX + 6, stackY + 24, 52, 12);
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(stackX + 18, stackY + 18, 26, 6);
-
-        // Tier 2 sedan on top rack
-        ctx.fillStyle = '#DC2626'; // Red Model 3
-        ctx.fillRect(stackX + 8, stackY + 4, 48, 10);
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(stackX + 18, stackY, 24, 5);
-
-        // Carrier steel frame
-        ctx.strokeStyle = '#64748B';
+        // Structural steel presentation frame
+        ctx.strokeStyle = '#475569';
         ctx.lineWidth = 2;
-        ctx.strokeRect(stackX, stackY - 2, 62, 42);
+        ctx.strokeRect(stackX + 2, stackY, 64, 44);
+
+        // Lower level: Dark Titanium Sedan
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(stackX + 8, stackY + 26, 52, 11);
+        ctx.fillStyle = '#0A0E17';
+        ctx.fillRect(stackX + 20, stackY + 20, 24, 6);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(stackX + 54, stackY + 28, 4, 2);
+
+        // Upper level: Deep Multicoat Red Tesla
+        ctx.fillStyle = '#DC2626';
+        ctx.fillRect(stackX + 10, stackY + 6, 48, 10);
+        ctx.fillStyle = '#0A0E17';
+        ctx.fillRect(stackX + 20, stackY + 2, 22, 5);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(stackX + 52, stackY + 8, 4, 2);
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(stackX + 10, stackY + 8, 2, 2);
+
+        // Hydraulic lift cylinder
+        ctx.fillStyle = '#94A3B8';
+        ctx.fillRect(stackX + 32, stackY + 16, 4, 6);
         break;
       }
     }
@@ -478,7 +531,7 @@ export class PixelRenderer {
     ctx.restore();
   }
 
-  // Draw Top Obstacle (Starship booster, Mechazilla arm, Rigging, Satellite, Space Debris)
+  // Draw Top Obstacle: Modular industrial stage scaffolding, suspended lighting trusses & launch infrastructure
   public static drawTopObstacle(
     ctx: CanvasRenderingContext2D,
     obs: Obstacle,
@@ -491,247 +544,187 @@ export class PixelRenderer {
 
     ctx.save();
 
-    switch (obs.topType) {
-      case 'booster': {
-        // Starship Super Heavy Booster hanging downward
-        ctx.fillStyle = '#CBD5E1'; // Stainless steel cylinder
-        ctx.fillRect(x + 6, y, w - 12, h - 24);
+    // 1. Base Suspended Modular Scaffolding Column (Dark carbon steel lattice)
+    ctx.fillStyle = '#080C14';
+    ctx.fillRect(x - 2, y, w + 4, h);
 
-        // Welded ring seams
+    // Inner structural shadow
+    ctx.fillStyle = '#0F1624';
+    ctx.fillRect(x, y, w, h - 3);
+
+    // Structural steel diagonal cross-braces
+    ctx.strokeStyle = '#253246';
+    ctx.lineWidth = 2;
+    const braceStep = 32;
+    for (let by = 0; by < h - 16; by += braceStep) {
+      const bh = Math.min(braceStep, h - by - 4);
+      ctx.strokeRect(x + 2, by, w - 4, bh);
+      ctx.beginPath();
+      ctx.moveTo(x + 2, by);
+      ctx.lineTo(x + w - 2, by + bh);
+      ctx.moveTo(x + w - 2, by);
+      ctx.lineTo(x + 2, by + bh);
+      ctx.stroke();
+    }
+
+    // Vertical structural corner tubes
+    ctx.fillStyle = '#1E293B';
+    ctx.fillRect(x, y, 4, h - 3);
+    ctx.fillRect(x + w - 4, y, 4, h - 3);
+
+    // Continuous Tesla-Red LED Edge Runner along bottom horizontal lip
+    ctx.fillStyle = '#E82127';
+    ctx.fillRect(x - 2, h - 3, w + 4, 3);
+    // Subtle red LED glow
+    ctx.fillStyle = 'rgba(232, 33, 39, 0.4)';
+    ctx.fillRect(x - 2, h, w + 4, 1);
+
+    // Flashing red corner beacons
+    const beaconStrobe = Math.sin(frameTick * 0.18) > 0;
+    ctx.fillStyle = beaconStrobe ? '#EF4444' : '#7F1D1D';
+    ctx.fillRect(x, h - 7, 3, 4);
+    ctx.fillRect(x + w - 3, h - 7, 3, 4);
+
+    // 2. Specific Suspended Staging / Lighting Fixture
+    switch (obs.topType) {
+      case 'gantry':
+      case 'rigging': {
+        // Suspended Heavy Stage Lighting Truss with Stage Par-Cans
+        const trussY = h - 26;
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(x + 4, trussY, w - 8, 22);
+
+        // Truss horizontal chord rails
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x + 2, trussY, w - 4, 3);
+        ctx.fillRect(x + 2, trussY + 18, w - 4, 3);
+
+        // Bank of 3 downward-pointing harsh white stage floodlights
+        const spotCount = 3;
+        const spotW = 12;
+        const spotSpacing = (w - 20 - (spotCount * spotW)) / (spotCount - 1);
+        for (let i = 0; i < spotCount; i++) {
+          const sx = x + 10 + i * (spotW + spotSpacing);
+
+          // Dark lamp housing
+          ctx.fillStyle = '#090D16';
+          ctx.fillRect(sx, trussY + 6, spotW, 10);
+
+          // Intense harsh white stage light lens
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(sx + 2, trussY + 14, spotW - 4, 2);
+
+          // Subtle directional white light beam cone into the gap
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.09)';
+          ctx.beginPath();
+          ctx.moveTo(sx + 2, trussY + 16);
+          ctx.lineTo(sx + spotW - 2, trussY + 16);
+          ctx.lineTo(sx + spotW + 8, h + 36);
+          ctx.lineTo(sx - 8, h + 36);
+          ctx.closePath();
+          ctx.fill();
+        }
+        break;
+      }
+
+      case 'conduit':
+      case 'satellite': {
+        // High-Voltage Industrial Power Trunk & Telemetry Rig
+        const condY = h - 30;
+        ctx.fillStyle = '#0D131F';
+        ctx.fillRect(x + 8, condY, w - 16, 26);
+
+        // Heavy industrial electrical wire conduits
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x + 14, 0, 4, h - 6);
+        ctx.fillRect(x + 24, 0, 4, h - 6);
+        ctx.fillRect(x + w - 18, 0, 4, h - 6);
+
+        // Red LED operational status strip
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(x + 10, condY + 8, w - 20, 2);
+
+        // Terminal junction box
+        ctx.fillStyle = '#1E293B';
+        ctx.fillRect(x + w / 2 - 12, condY + 4, 24, 18);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(x + w / 2 - 3, condY + 16, 6, 2); // White LED status
+        break;
+      }
+
+      case 'crane':
+      case 'debris': {
+        // Heavy Launchpad Overhead Crane & Winch Assembly
+        const craneY = h - 38;
+        ctx.fillStyle = '#1E293B';
+        ctx.fillRect(x + 8, craneY, w - 16, 24);
+
+        // Winch cable drum
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(x + w / 2 - 14, craneY + 4, 28, 12);
+
+        // Twin braided steel suspension cables
+        ctx.strokeStyle = '#94A3B8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2 - 8, craneY + 16);
+        ctx.lineTo(x + w / 2 - 8, h - 6);
+        ctx.moveTo(x + w / 2 + 8, craneY + 16);
+        ctx.lineTo(x + w / 2 + 8, h - 6);
+        ctx.stroke();
+
+        // Forged steel hoist block & hook
+        ctx.fillStyle = '#090D16';
+        ctx.fillRect(x + w / 2 - 12, h - 10, 24, 7);
+        ctx.fillStyle = '#E82127';
+        ctx.fillRect(x + w / 2 - 12, h - 4, 24, 2); // Red hazard edge
+        break;
+      }
+
+      case 'booster':
+      case 'mechazilla':
+      default: {
+        // Starship Launch Infrastructure / Mechazilla Catch Arm
+        const boosterY = h - 36;
+
+        // Stainless steel cylinder shell
+        ctx.fillStyle = '#CBD5E1';
+        ctx.fillRect(x + 6, y, w - 12, boosterY);
+
+        // Weld seams
         ctx.fillStyle = '#64748B';
-        for (let ry = 20; ry < h - 30; ry += 35) {
-          ctx.fillRect(x + 6, ry, w - 12, 2);
+        for (let sy = 16; sy < boosterY - 10; sy += 28) {
+          ctx.fillRect(x + 6, sy, w - 12, 2);
         }
 
-        // Aerodynamic grid fins
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(x - 6, h - 50, 12, 18);
-        ctx.fillRect(x + w - 6, h - 50, 12, 18);
+        // Heavy dark interstage section
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(x + 8, boosterY, w - 16, 22);
 
-        // Interstage bell & Raptor engine nozzles extending down
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(x + 10, h - 24, w - 20, 14);
+        // Aerodynamic grid fin / hydraulic hinge
+        ctx.fillStyle = '#090D16';
+        ctx.fillRect(x - 4, boosterY - 14, 10, 16);
+        ctx.fillRect(x + w - 6, boosterY - 14, 10, 16);
 
-        // 3 Raptor engine bells
-        const nozzleW = 12;
-        const nozzleSpacing = (w - 20 - (3 * nozzleW)) / 2;
-        for (let i = 0; i < 3; i++) {
-          const nx = x + 10 + (i * (nozzleW + nozzleSpacing));
+        // 3 Raptor engine bells with glowing throat
+        const bellCount = 3;
+        const bellW = 12;
+        const bellSpacing = (w - 20 - (bellCount * bellW)) / (bellCount - 1);
+        for (let i = 0; i < bellCount; i++) {
+          const bx = x + 10 + i * (bellW + bellSpacing);
           ctx.fillStyle = '#1E293B';
           ctx.beginPath();
-          ctx.moveTo(nx + 2, h - 10);
-          ctx.lineTo(nx + nozzleW - 2, h - 10);
-          ctx.lineTo(nx + nozzleW, h);
-          ctx.lineTo(nx, h);
+          ctx.moveTo(bx + 2, boosterY + 12);
+          ctx.lineTo(bx + bellW - 2, boosterY + 12);
+          ctx.lineTo(bx + bellW, h - 2);
+          ctx.lineTo(bx, h - 2);
           ctx.closePath();
           ctx.fill();
 
-          // Hot inner glow
-          ctx.fillStyle = '#EF4444';
-          ctx.fillRect(nx + 3, h - 2, nozzleW - 6, 2);
+          // Hot red ceramic inner glow
+          ctx.fillStyle = '#E82127';
+          ctx.fillRect(bx + 3, h - 4, bellW - 6, 2);
         }
-        break;
-      }
-
-      case 'mechazilla': {
-        // Mechazilla Catching Arm (Tower + black & yellow hazard stripes + hydraulic ram)
-        ctx.fillStyle = '#18181B';
-        ctx.fillRect(x + 8, y, w - 16, h - 30);
-
-        // Warning diagonal hazard stripes
-        const stripeH = 14;
-        for (let sy = 0; sy < h - 35; sy += stripeH * 2) {
-          ctx.fillStyle = '#FBBF24';
-          ctx.fillRect(x + 8, sy, w - 16, stripeH);
-        }
-
-        // Horizontal articulated chopstick arm
-        ctx.fillStyle = '#09090B';
-        ctx.fillRect(x, h - 30, w + 16, 26);
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(x + 4, h - 26, w + 8, 4);
-
-        // Hydraulic piston cylinder
-        ctx.fillStyle = '#94A3B8';
-        ctx.fillRect(x + 16, h - 14, 18, 14);
-        break;
-      }
-
-      case 'conduit': {
-        // High-voltage cyberpunk transit conduit & fuel gantry
-        ctx.fillStyle = '#1E293B';
-        ctx.fillRect(x + 10, y, w - 20, h - 22);
-
-        // Glowing neon power conduit lines (cyan / violet)
-        ctx.fillStyle = '#06B6D4';
-        ctx.fillRect(x + 14, 0, 4, h - 26);
-        ctx.fillStyle = '#A855F7';
-        ctx.fillRect(x + w - 18, 0, 4, h - 26);
-
-        // Industrial cross-frame brackets
-        ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 2;
-        for (let gy = 15; gy < h - 30; gy += 30) {
-          ctx.strokeRect(x + 8, gy, w - 16, 6);
-        }
-
-        // Warning hazard stripes at terminal header
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(x + 4, h - 22, w - 8, 14);
-        ctx.fillStyle = '#18181B';
-        ctx.fillRect(x + 12, h - 22, 10, 14);
-        ctx.fillRect(x + w - 22, h - 22, 10, 14);
-
-        // Blinking amber strobe on bottom
-        const strobe = Math.sin(frameTick * 0.25) > 0;
-        ctx.fillStyle = strobe ? '#FBBF24' : '#78350F';
-        ctx.fillRect(x + w / 2 - 5, h - 8, 10, 8);
-        break;
-      }
-
-      case 'satellite': {
-        // High-tech overhead gantry & telemetry sensor array
-        ctx.fillStyle = '#1E293B';
-        ctx.fillRect(x + 12, y, w - 24, h - 20);
-
-        // Gold foil sensor bay
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(x + 16, h - 32, w - 32, 12);
-
-        // Blue photovoltaic arrays / telemetry wings extending left & right
-        ctx.fillStyle = '#2563EB';
-        ctx.fillRect(x - 18, h - 36, 26, 20);
-        ctx.fillRect(x + w - 8, h - 36, 26, 20);
-
-        // Solar cell grid lines
-        ctx.strokeStyle = '#93C5FD';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - 18, h - 36, 26, 20);
-        ctx.strokeRect(x + w - 8, h - 36, 26, 20);
-
-        // Downward targeting laser / communications beacon
-        ctx.fillStyle = '#CBD5E1';
-        ctx.beginPath();
-        ctx.arc(x + w / 2, h - 6, 10, Math.PI, 0, true);
-        ctx.fill();
-
-        // Pulsing sensor light
-        const sensBlink = Math.sin(frameTick * 0.2) > 0;
-        ctx.fillStyle = sensBlink ? '#00F0FF' : '#0369A1';
-        ctx.fillRect(x + w / 2 - 3, h - 4, 6, 4);
-        break;
-      }
-
-      case 'debris': {
-        // Heavy industrial gantry crane hook & counterweight
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(x + 8, y, w - 16, h - 22);
-
-        // Warning chevrons
-        ctx.fillStyle = '#EAB308';
-        ctx.fillRect(x + 12, h - 36, w - 24, 6);
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(x + 18, h - 36, 8, 6);
-
-        // Heavy steel forged hook hanging down
-        ctx.strokeStyle = '#94A3B8';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(x + w / 2, h - 10, 10, 0, Math.PI);
-        ctx.stroke();
-        break;
-      }
-
-      case 'gantry': {
-        // Heavy Industrial Overhead Truss Gantry (from pixel asset sheet)
-        ctx.fillStyle = '#1E293B';
-        ctx.fillRect(x + 6, y, w - 12, h - 20);
-
-        // Warning diagonal hazard stripes across header
-        const gStripe = 10;
-        for (let sx = x + 6; sx < x + w - 6; sx += gStripe * 2) {
-          ctx.fillStyle = '#EAB308';
-          ctx.fillRect(sx, h - 30, gStripe, 10);
-          ctx.fillStyle = '#0F172A';
-          ctx.fillRect(sx + gStripe, h - 30, gStripe, 10);
-        }
-
-        // Riveted steel border plate
-        ctx.fillStyle = '#475569';
-        ctx.fillRect(x + 4, h - 20, w - 8, 8);
-
-        // Flashing amber caution beacon
-        const gBeacon = Math.sin(frameTick * 0.2) > 0;
-        ctx.fillStyle = gBeacon ? '#FBBF24' : '#78350F';
-        ctx.fillRect(x + w / 2 - 4, h - 12, 8, 8);
-        break;
-      }
-
-      case 'crane': {
-        // Overhead Launchpad Crane Arm with Suspension Cable & Hook (from pixel asset sheet)
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(x + 10, y, w - 20, h - 36);
-
-        // Hydraulic arm articulation joint
-        ctx.fillStyle = '#E2E8F0';
-        ctx.beginPath();
-        ctx.arc(x + w / 2, h - 36, 12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#0F172A';
-        ctx.beginPath();
-        ctx.arc(x + w / 2, h - 36, 6, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Twin steel suspension cables
-        ctx.strokeStyle = '#94A3B8';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x + w / 2 - 6, h - 24);
-        ctx.lineTo(x + w / 2 - 6, h - 10);
-        ctx.moveTo(x + w / 2 + 6, h - 24);
-        ctx.lineTo(x + w / 2 + 6, h - 10);
-        ctx.stroke();
-
-        // Heavy steel claw/hook
-        ctx.fillStyle = '#EAB308';
-        ctx.fillRect(x + w / 2 - 10, h - 10, 20, 6);
-        ctx.strokeStyle = '#CBD5E1';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x + w / 2, h - 4, 8, 0, Math.PI);
-        ctx.stroke();
-        break;
-      }
-
-      case 'rigging':
-      default: {
-        // Steel launch complex rigging & gantries
-        ctx.fillStyle = '#1E293B';
-        ctx.fillRect(x + 10, y, w - 20, h - 12);
-
-        // Cross-bracing steel beams
-        ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 2;
-        for (let gy = 10; gy < h - 20; gy += 30) {
-          ctx.beginPath();
-          ctx.moveTo(x + 10, gy);
-          ctx.lineTo(x + w - 10, gy + 30);
-          ctx.moveTo(x + w - 10, gy);
-          ctx.lineTo(x + 10, gy + 30);
-          ctx.stroke();
-        }
-
-        // Bottom spotlight / beacon
-        ctx.fillStyle = '#E2E8F0';
-        ctx.fillRect(x + w / 2 - 8, h - 12, 16, 12);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.moveTo(x + w / 2 - 8, h);
-        ctx.lineTo(x - 20, h + 50);
-        ctx.lineTo(x + w + 20, h + 50);
-        ctx.lineTo(x + w / 2 + 8, h);
-        ctx.closePath();
-        ctx.fill();
         break;
       }
     }

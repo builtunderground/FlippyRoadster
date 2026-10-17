@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCcw, Menu, Trophy, Shield } from 'lucide-react';
+import { RotateCcw, Menu, Trophy } from 'lucide-react';
 import { Skin } from '../types/game';
 
 interface GameOverModalProps {
@@ -24,54 +24,59 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   onMainMenu
 }) => {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md select-none touch-none">
-      <div className="bg-slate-950 border-2 border-red-600/80 rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-[0_0_50px_rgba(232,33,39,0.35)] text-center flex flex-col items-center">
-        {/* Title */}
-        <div className="font-pixel text-xl sm:text-2xl text-red-600 mb-1 tracking-wider drop-shadow-[0_0_12px_rgba(232,33,39,0.7)]">
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm select-none touch-none">
+      <div className="bg-[#05070E] border border-red-600/50 rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-[0_0_60px_rgba(232,33,39,0.3)] text-center flex flex-col items-center">
+        {/* Failed Product Demonstration Header */}
+        <div className="font-display font-bold text-2xl sm:text-3xl text-red-600 tracking-wider mb-0.5 drop-shadow-[0_0_15px_rgba(232,33,39,0.7)]">
           MISSION ABORT
         </div>
 
-        {/* Deadpan quote */}
-        <div className="w-full bg-black/60 border border-slate-800 rounded-lg p-2.5 my-3 text-xs font-mono text-slate-300 italic">
+        <div className="font-mono text-[10px] text-red-400/80 uppercase tracking-widest mb-3">
+          TEST RUN ANOMALY DETECTED
+        </div>
+
+        {/* Deadpan technical quote */}
+        <div className="w-full bg-black/80 border-l-2 border-red-600 border-y border-r border-white/5 rounded-r-lg p-3 my-2 text-xs font-mono text-slate-300 italic text-left">
           "{quote}"
         </div>
 
-        {/* Score Card */}
-        <div className="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-4 mb-4">
-          <div className="text-[10px] font-retro text-cyan-400 uppercase tracking-widest mb-1">
+        {/* Telemetry Display */}
+        <div className="w-full bg-[#0A0E1A] border border-white/10 rounded-xl p-4 my-3">
+          <div className="text-[10px] font-label text-slate-400 uppercase tracking-widest mb-1">
             DISTANCE CLEARED
           </div>
-          <div className="font-pixel text-3xl sm:text-4xl text-white mb-2 tabular-nums font-bold">
-            {score} <span className="text-base text-slate-400 font-normal">FT</span>
+          <div className="font-display text-4xl sm:text-5xl text-white font-bold tracking-tight mb-2 tabular-nums">
+            {score} <span className="font-label text-base text-slate-400 font-normal">FT</span>
           </div>
 
           {isNewHigh ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 border border-amber-400/60 rounded-full text-amber-300 font-pixel text-[10px] animate-bounce">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 border border-amber-400/60 rounded-full text-amber-300 font-tech font-bold text-xs">
               <Trophy className="w-3.5 h-3.5" />
-              <span>NEW RECORD!</span>
+              <span>NEW RECORD</span>
             </div>
           ) : (
             <div className="text-xs font-mono text-slate-400">
-              BEST RECORD: <span className="text-amber-400 font-bold">{highScore} FT</span>
+              BENCHMARK: <span className="text-white font-bold">{highScore} FT</span>
             </div>
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-2.5 w-full font-pixel text-xs">
+        {/* Action Buttons: Chakra Petch Bold */}
+        <div className="flex flex-col gap-2.5 w-full font-tech font-bold text-xs sm:text-sm">
           <button
             onClick={onRestart}
-            className="flex items-center justify-center gap-2.5 w-full py-4 bg-red-600 hover:bg-red-500 active:scale-95 text-white rounded-xl border border-red-400 shadow-[0_0_20px_rgba(232,33,39,0.55)] cursor-pointer transition-all animate-pulse"
+            className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-red-600 hover:bg-red-500 active:scale-95 text-white rounded-xl border border-red-400 shadow-[0_0_20px_rgba(232,33,39,0.45)] cursor-pointer transition-all tracking-wider"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>RETRY (TAP OR SPACE)</span>
+            <span>RETRY</span>
+            <span className="text-[10px] font-mono text-red-200/80 font-normal">[TAP OR SPACE]</span>
           </button>
 
           <button
             onClick={onMainMenu}
-            className="flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-slate-300 rounded-xl border border-slate-700 cursor-pointer transition-colors hover:text-white"
+            className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 text-slate-300 hover:text-white rounded-xl border border-white/10 cursor-pointer transition-colors tracking-wider"
           >
-            <Menu className="w-3.5 h-3.5" />
+            <Menu className="w-4 h-4" />
             <span>MAIN MENU</span>
           </button>
         </div>
