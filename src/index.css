@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-pixel {
+    font-family: 'Press Start 2P', monospace;
+  }
+  .font-retro {
+    font-family: 'Silkscreen', monospace;
+  }
+  .font-hud {
+    font-family: 'Chakra Petch', sans-serif;
+  }
+  .pixelated {
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* CRT Scanline & Retro glow subtle effects */
+.scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+.pixel-border {
+  box-shadow: 
+    0 -3px 0 0 #000,
+    0 3px 0 0 #000,
+    -3px 0 0 0 #000,
+    3px 0 0 0 #000;
+}
+

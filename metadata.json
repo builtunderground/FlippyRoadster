@@ -1,0 +1,6 @@
+{
+  "name": "Flippy Roadster",
+  "description": "Retro pixel-art arcade game where players pilot a thruster-equipped Tesla Roadster through Texas staging grounds, SpaceX launch complexes, and orbital space debris.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
