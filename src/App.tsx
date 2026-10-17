@@ -301,11 +301,11 @@ export default function App() {
       {gameState === 'MENU' && (
         <StartScreen
           onStartGame={handleStartRun}
-          onOpenGarage={() => setShowGarage(true)}
-          onOpenLeaderboard={() => setShowLeaderboard(true)}
-          onOpenSettings={() => setShowSettings(true)}
           highScore={stats.highScore}
           currentSkin={currentSkin}
+          onSelectSkin={handleSelectSkin}
+          isMuted={isMuted}
+          onToggleMute={handleToggleMute}
         />
       )}
 
@@ -380,10 +380,6 @@ export default function App() {
           currentSkin={currentSkin}
           quote={lastRunStats.quote}
           onRestart={handleStartRun}
-          onOpenGarage={() => {
-            setShowGameOver(false);
-            setShowGarage(true);
-          }}
           onMainMenu={() => {
             setShowGameOver(false);
             setGameState('MENU');

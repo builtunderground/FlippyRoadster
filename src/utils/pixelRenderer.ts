@@ -390,6 +390,65 @@ export class PixelRenderer {
         break;
       }
 
+      case 'generator': {
+        // Industrial Cryogenic Power Substation / Generator (from pixel tileset)
+        const gy = y - 38;
+        const gx = x + (w - 68) / 2;
+
+        // Main chassis
+        ctx.fillStyle = '#1E293B';
+        ctx.fillRect(gx, gy + 8, 68, 30);
+
+        // Top cooling radiator block
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(gx + 6, gy, 56, 8);
+
+        // Glowing cyan energy core vent
+        const coreGlow = Math.sin(frameTick * 0.1) * 0.2 + 0.8;
+        ctx.fillStyle = `rgba(6, 182, 212, ${coreGlow})`;
+        ctx.fillRect(gx + 12, gy + 14, 20, 16);
+
+        // Warning chevrons on front panel
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(gx + 40, gy + 14, 22, 6);
+        ctx.fillStyle = '#18181B';
+        ctx.fillRect(gx + 46, gy + 14, 6, 6);
+
+        // Status indicator LEDs
+        ctx.fillStyle = '#10B981';
+        ctx.fillRect(gx + 40, gy + 24, 4, 4);
+        ctx.fillStyle = Math.sin(frameTick * 0.2) > 0 ? '#EF4444' : '#7F1D1D';
+        ctx.fillRect(gx + 48, gy + 24, 4, 4);
+        break;
+      }
+
+      case 'battery_pack': {
+        // Megapack Energy Storage Unit (from pixel tileset)
+        const by = y - 34;
+        const bx = x + (w - 70) / 2;
+
+        // Clean white/gray industrial enclosure
+        ctx.fillStyle = '#E2E8F0';
+        ctx.fillRect(bx, by + 6, 70, 28);
+
+        // Recessed cooling vents
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(bx + 8, by + 12, 16, 16);
+        ctx.fillRect(bx + 28, by + 12, 16, 16);
+        ctx.fillRect(bx + 48, by + 12, 16, 16);
+
+        // Green LED charge level meter bars
+        ctx.fillStyle = '#22C55E';
+        for (let seg = 0; seg < 4; seg++) {
+          ctx.fillRect(bx + 10 + seg * 14, by + 8, 10, 2);
+        }
+
+        // Base mounting brackets
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(bx - 2, by + 30, 74, 4);
+        break;
+      }
+
       case 'model3_stack':
       default: {
         // Multi-tiered Model 3 transporter rack
@@ -579,6 +638,67 @@ export class PixelRenderer {
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(x + w / 2, h - 10, 10, 0, Math.PI);
+        ctx.stroke();
+        break;
+      }
+
+      case 'gantry': {
+        // Heavy Industrial Overhead Truss Gantry (from pixel asset sheet)
+        ctx.fillStyle = '#1E293B';
+        ctx.fillRect(x + 6, y, w - 12, h - 20);
+
+        // Warning diagonal hazard stripes across header
+        const gStripe = 10;
+        for (let sx = x + 6; sx < x + w - 6; sx += gStripe * 2) {
+          ctx.fillStyle = '#EAB308';
+          ctx.fillRect(sx, h - 30, gStripe, 10);
+          ctx.fillStyle = '#0F172A';
+          ctx.fillRect(sx + gStripe, h - 30, gStripe, 10);
+        }
+
+        // Riveted steel border plate
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(x + 4, h - 20, w - 8, 8);
+
+        // Flashing amber caution beacon
+        const gBeacon = Math.sin(frameTick * 0.2) > 0;
+        ctx.fillStyle = gBeacon ? '#FBBF24' : '#78350F';
+        ctx.fillRect(x + w / 2 - 4, h - 12, 8, 8);
+        break;
+      }
+
+      case 'crane': {
+        // Overhead Launchpad Crane Arm with Suspension Cable & Hook (from pixel asset sheet)
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x + 10, y, w - 20, h - 36);
+
+        // Hydraulic arm articulation joint
+        ctx.fillStyle = '#E2E8F0';
+        ctx.beginPath();
+        ctx.arc(x + w / 2, h - 36, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.arc(x + w / 2, h - 36, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Twin steel suspension cables
+        ctx.strokeStyle = '#94A3B8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2 - 6, h - 24);
+        ctx.lineTo(x + w / 2 - 6, h - 10);
+        ctx.moveTo(x + w / 2 + 6, h - 24);
+        ctx.lineTo(x + w / 2 + 6, h - 10);
+        ctx.stroke();
+
+        // Heavy steel claw/hook
+        ctx.fillStyle = '#EAB308';
+        ctx.fillRect(x + w / 2 - 10, h - 10, 20, 6);
+        ctx.strokeStyle = '#CBD5E1';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x + w / 2, h - 4, 8, 0, Math.PI);
         ctx.stroke();
         break;
       }
@@ -890,12 +1010,12 @@ export class PixelRenderer {
       // LEVEL 2: CYBER COMPLEX (GIGA TEXAS / CYBERPUNK MEGACITY)
       // =========================================================================
 
-      // FAR BG (LAYER 1): Cyberpunk Night Sky with Electric Violet & Warm Amber Horizon Glow
+      // FAR BG (LAYER 1): Unified Cyberpunk Twilight Night Sky with Warm Amber Horizon Glow (matching beginning environment)
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#030514');
-      skyGrad.addColorStop(0.5, '#0B0F2C');
-      skyGrad.addColorStop(0.8, '#1C1236');
-      skyGrad.addColorStop(1, '#9333EA'); // Electric neon violet/amber horizon glow
+      skyGrad.addColorStop(0, '#040612');
+      skyGrad.addColorStop(0.55, '#0B1028');
+      skyGrad.addColorStop(0.82, '#1E1432');
+      skyGrad.addColorStop(1, '#B45309'); // Warm amber launch staging horizon glow
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height);
 
@@ -1074,12 +1194,12 @@ export class PixelRenderer {
       // LEVEL 3: STARBASE CITY (MEGA LAUNCH COMPLEX & HIGHBAY)
       // =========================================================================
 
-      // FAR BG (LAYER 1): Deep Cosmic Night Sky with Rich Crimson / Amber Horizon Glow
+      // FAR BG (LAYER 1): Unified Cyberpunk Twilight Night Sky with Warm Amber Horizon Glow (matching beginning environment)
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#02030C');
-      skyGrad.addColorStop(0.55, '#070C24');
-      skyGrad.addColorStop(0.82, '#1E1032');
-      skyGrad.addColorStop(1, '#DC2626'); // High-energy crimson/amber launchpad horizon glow
+      skyGrad.addColorStop(0, '#040612');
+      skyGrad.addColorStop(0.55, '#0B1028');
+      skyGrad.addColorStop(0.82, '#1E1432');
+      skyGrad.addColorStop(1, '#B45309'); // Warm amber launch staging horizon glow
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height);
 

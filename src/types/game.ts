@@ -33,8 +33,8 @@ export interface Obstacle {
   gapSize: number;
   passed: boolean;
   phase: GamePhase;
-  topType: 'booster' | 'mechazilla' | 'rigging' | 'satellite' | 'debris' | 'conduit';
-  bottomType: 'cybertruck' | 'model3_stack' | 'cybercab' | 'semi' | 'fleet_platform';
+  topType: 'booster' | 'mechazilla' | 'rigging' | 'satellite' | 'debris' | 'conduit' | 'gantry' | 'crane';
+  bottomType: 'cybertruck' | 'model3_stack' | 'cybercab' | 'semi' | 'fleet_platform' | 'generator' | 'battery_pack';
   hazardType?: 'faa_gate' | 'cryo_vent';
   hazardActive?: boolean;
   hazardTimer?: number;

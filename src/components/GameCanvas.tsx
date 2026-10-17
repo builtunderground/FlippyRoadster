@@ -247,22 +247,27 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const topHeight = gapY;
       const bottomHeight = canvasH - (gapY + gapSize);
 
-      // Random top obstacle type based on phase
-      const topTypes: Obstacle['topType'][] =
-        phase === 'SPACE'
-          ? ['booster', 'mechazilla', 'conduit', 'rigging', 'satellite']
-          : phase === 'ORBITAL'
-          ? ['booster', 'mechazilla', 'conduit', 'rigging']
-          : ['booster', 'rigging', 'mechazilla'];
+      // Diverse top obstacle types inspired by cyberpunk launch stage tileset
+      const topTypes: Obstacle['topType'][] = [
+        'gantry',
+        'crane',
+        'conduit',
+        'booster',
+        'mechazilla',
+        'rigging',
+        'satellite'
+      ];
 
       const topType = topTypes[Math.floor(Math.random() * topTypes.length)];
 
-      // Random bottom fleet type
+      // Diverse bottom obstacle types inspired by cyberpunk launch stage tileset
       const bottomTypes: Obstacle['bottomType'][] = [
         'cybertruck',
-        'model3_stack',
-        'cybercab',
+        'generator',
+        'battery_pack',
         'semi',
+        'cybercab',
+        'model3_stack',
         'fleet_platform'
       ];
       const bottomType = bottomTypes[Math.floor(Math.random() * bottomTypes.length)];
@@ -721,19 +726,46 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     performBarrelRoll
   ]);
 
+  const lastTouchTimeRef = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+
+    const now = Date.now();
+    if (now - lastTouchTimeRef.current < 280) {
+      // Double tap triggers 360 barrel roll!
+      performBarrelRoll();
+      lastTouchTimeRef.current = 0;
+    } else {
+      lastTouchTimeRef.current = now;
+      handleThrustStart();
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+    handleThrustEnd();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    handleThrustStart();
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    handleThrustEnd();
+  };
+
   return (
     <div
-      className="relative w-full h-full flex items-center justify-center overflow-hidden cursor-pointer select-none"
-      onMouseDown={handleThrustStart}
-      onMouseUp={handleThrustEnd}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        handleThrustStart();
-      }}
-      onTouchEnd={(e) => {
-        e.preventDefault();
-        handleThrustEnd();
-      }}
+      className="relative w-full h-full flex items-center justify-center overflow-hidden cursor-pointer select-none touch-none"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <canvas
         ref={canvasRef}
