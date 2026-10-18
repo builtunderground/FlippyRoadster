@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Play, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
+import { Play, ChevronLeft, ChevronRight, Volume2, VolumeX, Trophy } from 'lucide-react';
 import { Skin } from '../types/game';
 import { SKINS, PixelRenderer } from '../utils/pixelRenderer';
 import { soundEngine } from '../utils/audio';
@@ -13,6 +13,7 @@ interface StartScreenProps {
   onSelectSkin: (skin: Skin) => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  onOpenLeaderboard?: () => void;
 }
 
 export const StartScreen: React.FC<StartScreenProps> = ({
@@ -21,7 +22,8 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   currentSkin,
   onSelectSkin,
   isMuted,
-  onToggleMute
+  onToggleMute,
+  onOpenLeaderboard
 }) => {
   const currentSkinIndex = SKINS.findIndex((s) => s.id === currentSkin.id);
   const touchStartXRef = useRef<number | null>(null);
@@ -144,14 +146,19 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           </div>
         </div>
 
-        {/* Right: Best Record Display (Oversized Oxanium/Doto Numbers) */}
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end bg-neutral-950/90 border border-neutral-800 px-3 py-1 shadow-lg">
-            <span className="text-[9px] font-kanji text-neutral-400 uppercase tracking-widest">
-              最高到達高度 / BEST
-            </span>
+        {/* Right: Best Record Display & Arcade Leaderboard Trigger */}
+        <div className="flex items-center gap-2">
+          <div
+            onClick={onOpenLeaderboard}
+            className="flex flex-col items-end bg-neutral-950/90 hover:bg-neutral-900 border border-neutral-800 hover:border-amber-500/50 px-2.5 py-1 shadow-lg cursor-pointer transition-all group"
+            title="Open Arcade High Scores Leaderboard"
+          >
+            <div className="flex items-center gap-1 text-[9px] font-kanji text-neutral-400 group-hover:text-amber-400 uppercase tracking-widest transition-colors">
+              <Trophy className="w-3 h-3 text-amber-400" />
+              <span>最高記録 / BEST</span>
+            </div>
             <div className="flex items-baseline gap-1">
-              <span className="font-oxanium font-bold text-base sm:text-lg text-white tabular-nums tracking-tight">
+              <span className="font-oxanium font-bold text-base sm:text-lg text-white group-hover:text-amber-300 tabular-nums tracking-tight transition-colors">
                 {highScore}
               </span>
               <span className="font-label text-[10px] text-red-400">FT</span>
@@ -357,7 +364,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           </div>
         </div>
 
-        {/* Shantiisan Republic Copyright and TAV link */}
+        {/* Shantiisan Republic Copyright and Portal */}
         <ShantiisanFooter />
       </div>
     </div>

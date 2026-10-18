@@ -12,6 +12,7 @@ interface GameCanvasProps {
   onScoreUpdate: (score: number, airPsi: number, speedMph: number, phase: GamePhase) => void;
   isPaused: boolean;
   triggerRollSignal?: number; // external trigger from HUD button
+  triggerThrustSignal?: number; // external trigger from HUD button
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -22,7 +23,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   onGameOver,
   onScoreUpdate,
   isPaused,
-  triggerRollSignal
+  triggerRollSignal,
+  triggerThrustSignal
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -82,9 +84,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.rollProgress = 0;
       s.airPsi -= 1800;
       s.hasShield = true;
-      s.shieldTimer = 45; // ~0.75s of complete invincibility
+      s.shieldTimer = 50; // ~0.85s of complete invincibility
       s.rollCount++;
       s.speedMph = Math.min(850, s.speedMph + 180);
+      s.vy = Math.min(s.vy * 0.25, -1.2); // Aerodynamic stabilization during combat roll
       soundEngine.playBarrelRoll();
 
       // Emit burst of cyan shield particles
@@ -131,12 +134,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || ('ontouchstart' in window));
 
-    // Check if sufficient PSI (forgiving: 45 PSI cost on mobile for rapid tapping)
-    const psiCost = isMobile ? 55 : 75;
+    // Check if sufficient PSI (forgiving PSI cost)
+    const psiCost = isMobile ? 55 : 65;
     if (s.airPsi > 35) {
-      s.vy = isMobile ? -6.85 : -6.4; // Snappier upward impulse on mobile
+      s.vy = isMobile ? -5.9 : -4.85; // Calibrated, precise upward impulse on desktop (down from -6.4)
       s.airPsi = Math.max(0, s.airPsi - psiCost);
-      s.speedMph = Math.min(820, s.speedMph + (isMobile ? 28 : 20));
+      s.speedMph = Math.min(820, s.speedMph + (isMobile ? 22 : 12));
       soundEngine.playThrust();
 
       // Generate rear exhaust particles
@@ -181,6 +184,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     stateRef.current.holdDuration = 0;
     stateRef.current.hasTriggeredHoldRoll = false;
   }, []);
+
+  // Listen for trigger signal from HUD THRUST button
+  useEffect(() => {
+    if (triggerThrustSignal && triggerThrustSignal > 0) {
+      handleThrustStart();
+      const timer = setTimeout(() => {
+        handleThrustEnd();
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+  }, [triggerThrustSignal, handleThrustStart, handleThrustEnd]);
 
   // Keyboard and Touch listeners (dedicated Barrel Roll keys: B, R, Shift, F, Down, S)
   useEffect(() => {
@@ -490,19 +504,39 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const speedBonus = Math.min(2.5, s.score * 0.01);
         s.scrollX += baseSpeed + speedBonus;
 
-        // Hold to Barrel Roll mechanic (snappier on mobile: 14 frames ~0.23s)
-        const holdThreshold = isMobile ? 14 : 20;
-        if (s.isThrusting && !s.hasTriggeredHoldRoll) {
+        // Sustained vertical thrust while held (pure cold-gas flight propulsion, NOT a barrel roll)
+        if (s.isThrusting && s.airPsi > 35) {
           s.holdDuration++;
-          if (s.holdDuration >= holdThreshold) {
-            performBarrelRoll();
-            s.hasTriggeredHoldRoll = true;
+          if (s.holdDuration > 2) {
+            // Apply continuous smooth, controllable upward lift (gentle on desktop)
+            const holdMaxVy = isMobile ? -6.8 : -5.4;
+            const holdAccel = isMobile ? 0.32 : 0.18;
+            s.vy = Math.max(holdMaxVy, s.vy - holdAccel);
+            s.airPsi = Math.max(0, s.airPsi - 5);
+
+            // Continuously emit exhaust plume particles
+            if (s.holdDuration % 3 === 0) {
+              s.particles.push({
+                x: s.x - 30,
+                y: s.y + 4 + (Math.random() * 4 - 2),
+                vx: -(Math.random() * 4 + 4),
+                vy: Math.random() * 2 - 1,
+                size: Math.random() * 2.5 + 1.5,
+                life: 0,
+                maxLife: 14,
+                color: currentThruster.sparkColor,
+                alpha: 0.8,
+                type: 'thrust'
+              });
+            }
           }
         }
 
-        // Barrel Roll Animation
+        // Barrel Roll Animation (Dedicated 360-degree aerodynamic combat roll)
         if (s.isRolling) {
-          s.rollProgress += 0.038;
+          s.rollProgress += 0.045; // ~22 frames full 360 spin
+          // Aerodynamic leveling during roll (prevents stalling/plummeting)
+          s.vy = Math.min(s.vy, 0.4);
           if (s.rollProgress >= 1) {
             s.isRolling = false;
             s.rollProgress = 0;
@@ -517,8 +551,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         }
 
-        // Physics: Snappier, responsive gravity on mobile for rapid thumb tapping
-        const gravity = isMobile ? 0.34 : 0.28;
+        // Physics: Snappier, responsive gravity on mobile, floatier on desktop
+        const gravity = isMobile ? 0.32 : 0.25;
         s.vy += gravity;
         s.y += s.vy;
 
@@ -892,7 +926,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     performBarrelRoll
   ]);
 
-  const lastTouchTimeRef = useRef<number>(0);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
@@ -906,20 +941,32 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       return;
     }
 
-    const now = Date.now();
-    if (now - lastTouchTimeRef.current < 280) {
-      // Double tap triggers 360 barrel roll!
-      performBarrelRoll();
-      lastTouchTimeRef.current = 0;
-    } else {
-      lastTouchTimeRef.current = now;
-      handleThrustStart();
+    const touch = e.touches[0];
+    if (touch) {
+      touchStartXRef.current = touch.clientX;
+      touchStartYRef.current = touch.clientY;
     }
+
+    // Tapping the screen ALWAYS thrusts (vertical lift)
+    handleThrustStart();
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
     e.preventDefault();
+
+    // Check for horizontal swipe right to trigger acrobatic barrel roll
+    const changedTouch = e.changedTouches[0];
+    if (changedTouch && touchStartXRef.current !== null && touchStartYRef.current !== null) {
+      const deltaX = changedTouch.clientX - touchStartXRef.current;
+      const deltaY = Math.abs(changedTouch.clientY - touchStartYRef.current);
+      if (deltaX > 55 && deltaY < 45) {
+        performBarrelRoll();
+      }
+    }
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+
     handleThrustEnd();
   };
 

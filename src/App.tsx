@@ -34,6 +34,7 @@ export default function App() {
   const [speedMph, setSpeedMph] = useState(250);
   const [currentPhase, setCurrentPhase] = useState<GamePhase>('WACO');
   const [triggerRollSignal, setTriggerRollSignal] = useState(0);
+  const [triggerThrustSignal, setTriggerThrustSignal] = useState(0);
 
   // Modals
   const [showGarage, setShowGarage] = useState(false);
@@ -277,6 +278,7 @@ export default function App() {
         onScoreUpdate={handleScoreUpdate}
         isPaused={isPaused}
         triggerRollSignal={triggerRollSignal}
+        triggerThrustSignal={triggerThrustSignal}
       />
 
       {/* Top HUD (during play and game over) */}
@@ -296,6 +298,7 @@ export default function App() {
           onToggleMute={handleToggleMute}
           onToggleMusic={handleToggleMusic}
           onTriggerRoll={handleTriggerRoll}
+          onTriggerThrust={() => setTriggerThrustSignal((s) => s + 1)}
         />
       )}
 
@@ -308,6 +311,7 @@ export default function App() {
           onSelectSkin={handleSelectSkin}
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
+          onOpenLeaderboard={() => setShowLeaderboard(true)}
         />
       )}
 
@@ -377,6 +381,9 @@ export default function App() {
       {showLeaderboard && (
         <LeaderboardModal
           stats={stats}
+          currentRunScore={lastRunStats.score}
+          currentRunSpeed={lastRunStats.maxSpeed}
+          currentSkinName={currentSkin.name}
           onClose={() => setShowLeaderboard(false)}
         />
       )}
@@ -404,6 +411,7 @@ export default function App() {
           currentSkin={currentSkin}
           quote={lastRunStats.quote}
           onRestart={handleStartRun}
+          onOpenLeaderboard={() => setShowLeaderboard(true)}
           onMainMenu={() => {
             setShowGameOver(false);
             setGameState('MENU');

@@ -15,9 +15,10 @@ export const GameLogo: React.FC<GameLogoProps> = ({
 }) => {
   const sizeClasses = {
     xs: 'h-6 sm:h-8',
-    sm: 'h-9 sm:h-11',
+    sm: 'h-9 sm:h-12',
     md: 'h-12 sm:h-16',
-    lg: 'h-16 sm:h-22'
+    lg: 'h-20 sm:h-28',
+    xl: 'h-24 sm:h-36'
   };
 
   return (

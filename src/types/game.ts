@@ -71,3 +71,13 @@ export interface GameStats {
   unlockedSkins: string[];
   unlockedThrusters: string[];
 }
+
+export interface LeaderboardEntry {
+  id: string;
+  initials: string;
+  score: number;
+  maxSpeed: number;
+  skinName: string;
+  date: string;
+  isPlayer?: boolean;
+}

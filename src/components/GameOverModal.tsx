@@ -15,6 +15,7 @@ interface GameOverModalProps {
   quote: string;
   onRestart: () => void;
   onOpenGarage?: () => void;
+  onOpenLeaderboard?: () => void;
   onMainMenu: () => void;
 }
 
@@ -24,6 +25,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   isNewHigh,
   quote,
   onRestart,
+  onOpenLeaderboard,
   onMainMenu
 }) => {
   return (
@@ -33,9 +35,9 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         <div className="absolute top-1 left-1 font-mono text-[9px] text-red-600/70">⌜ SYS-ERR ⌝</div>
         <div className="absolute top-1 right-1 font-mono text-[9px] text-red-600/70">⌞ SEC-04 ⌟</div>
 
-        {/* Flippy Roadster Game Logo prominently featured on Mission Abort Screen */}
-        <div className="mb-2 pt-1">
-          <GameLogo size="md" showSubtitle={false} className="drop-shadow-[0_0_24px_rgba(232,33,39,0.7)]" />
+        {/* Flippy Roadster Game Logo prominently featured on Mission Abort Screen (Doubled Size) */}
+        <div className="mb-2 pt-1 flex justify-center w-full">
+          <GameLogo size="lg" showSubtitle={false} className="drop-shadow-[0_0_32px_rgba(232,33,39,0.85)]" />
         </div>
 
         {/* Failed Product Demonstration Header */}
@@ -120,6 +122,24 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             </div>
             <span className="text-[10px] font-mono text-red-200 font-normal">[TAP OR SPACE]</span>
           </button>
+
+          {/* ARCADE LEADERBOARD / INITIALS BUTTON */}
+          {onOpenLeaderboard && (
+            <button
+              type="button"
+              onClick={onOpenLeaderboard}
+              className="flex items-center justify-between w-full py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer transition-all tracking-wider"
+            >
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span>ARCADE HIGH SCORES</span>
+                <span className="font-kanji text-[10px] text-amber-400/80">3文字登録</span>
+              </div>
+              <span className="text-[10px] font-mono text-amber-300 font-bold bg-neutral-900 px-1.5 py-0.5 border border-neutral-800">
+                [ENTER INITIALS]
+              </span>
+            </button>
+          )}
 
           {/* MAIN MENU BUTTON */}
           <button
