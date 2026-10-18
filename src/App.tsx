@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { GameState, GamePhase, Skin, ThrusterColor, GameStats } from './types/game';
 import { SKINS, THRUSTER_COLORS } from './utils/pixelRenderer';
 import { soundEngine } from './utils/audio';
@@ -419,6 +420,9 @@ export default function App() {
         onChange={handleCustomAudioUpload}
         className="hidden"
       />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
