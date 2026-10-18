@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Trophy, Medal, RotateCcw, User, PlusCircle } from 'lucide-react';
 import { GameLogo } from './ui/GameLogo';
 import { GameStats, LeaderboardEntry } from '../types/game';
-import { getLeaderboard, addLeaderboardEntry, getLastPilotInitials, resetLeaderboard } from '../utils/leaderboard';
+import { getLeaderboard, addLeaderboardEntry, getLastPilotInitials, resetLeaderboard, subscribeToSharedLeaderboard } from '../utils/leaderboard';
 import { ArcadeInitialsInput } from './ui/ArcadeInitialsInput';
 import { ShantiisanFooter } from './ui/ShantiisanFooter';
 
@@ -29,14 +29,22 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Set immediate cached state
     setEntries(getLeaderboard());
+
+    // Subscribe to live shared Firestore updates
+    const unsubscribe = subscribeToSharedLeaderboard((liveEntries) => {
+      setEntries(liveEntries);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleInitialsSubmit = (initials: string) => {
+  const handleInitialsSubmit = async (initials: string) => {
     const scoreToRecord = currentRunScore !== undefined && currentRunScore > 0 ? currentRunScore : stats.highScore;
     const speedToRecord = currentRunSpeed !== undefined && currentRunSpeed > 0 ? currentRunSpeed : stats.maxSpeed;
 
-    const { updatedLeaderboard, newRank } = addLeaderboardEntry(
+    const { updatedLeaderboard, entryId } = await addLeaderboardEntry(
       initials,
       scoreToRecord,
       speedToRecord,
@@ -45,11 +53,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
     setEntries(updatedLeaderboard);
     setShowInput(false);
-    // Find the newly added entry to highlight
-    const added = updatedLeaderboard[newRank - 1];
-    if (added) {
-      setSubmittedId(added.id);
-    }
+    setSubmittedId(entryId);
   };
 
   const handleResetScores = () => {
@@ -88,9 +92,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <span className="font-mono text-[9px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 border border-amber-500/30">
                   TOP 10
                 </span>
+                <span className="flex items-center gap-1 font-mono text-[8px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  SHARED CLOUD
+                </span>
               </div>
               <div className="font-kanji text-[10px] text-neutral-400">
-                飛行殿堂 · 3文字イニシャル登録
+                世界共有殿堂 · リアルタイム反映
               </div>
             </div>
           </div>

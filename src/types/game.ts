@@ -79,5 +79,6 @@ export interface LeaderboardEntry {
   maxSpeed: number;
   skinName: string;
   date: string;
+  userId?: string;
   isPlayer?: boolean;
 }
