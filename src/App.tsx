@@ -16,6 +16,7 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal } from './components/SettingsModal';
 import { GameLogo } from './components/ui/GameLogo';
 import { OptimusBot } from './components/ui/OptimusBot';
+import { Analytics } from '@vercel/analytics/react';
 
 const STATS_KEY = 'flippy_roadster_stats_v1';
 const SKIN_KEY = 'flippy_roadster_skin_v1';
@@ -419,6 +420,9 @@ export default function App() {
         onChange={handleCustomAudioUpload}
         className="hidden"
       />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
