@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Trophy, Medal, User } from 'lucide-react';
+import { GameLogo } from './ui/GameLogo';
 import { GameStats } from '../types/game';
 
 interface LeaderboardModalProps {
@@ -13,11 +14,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 }) => {
   // Mock leaderboard combined with real player record
   const mockPilots = [
-    { rank: 1, name: 'Starman 🛰️', score: 142, vehicle: 'Starman Edition' },
-    { rank: 2, name: 'Technoking ⚡', score: 98, vehicle: 'SpaceX Stainless' },
-    { rank: 3, name: 'Franz v. H. 🔨', score: 84, vehicle: 'Ultra Red' },
-    { rank: 4, name: 'CyberGiga 📐', score: 62, vehicle: 'SpaceX Stainless' },
-    { rank: 5, name: 'RocketBoy 🚀', score: 45, vehicle: 'Ano White' }
+    { rank: 1, name: 'Starman 🛰️', score: 142, vehicle: 'Starman Edition', badge: 'DEEP SPACE' },
+    { rank: 2, name: 'Technoking ⚡', score: 98, vehicle: 'SpaceX Stainless', badge: 'ORBITAL' },
+    { rank: 3, name: 'Franz v. H. 🔨', score: 84, vehicle: 'Ultra Red', badge: 'HIGH G' },
+    { rank: 4, name: 'CyberGiga 📐', score: 62, vehicle: 'SpaceX Stainless', badge: 'AERO' },
+    { rank: 5, name: 'RocketBoy 🚀', score: 45, vehicle: 'Ano White', badge: 'SUBORBITAL' }
   ];
 
   // Insert player into ranked list
@@ -25,108 +26,111 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     mockPilots.filter((p) => p.score > stats.highScore).length + 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md select-none">
-      <div className="bg-slate-950 border border-amber-500/40 rounded-xl max-w-lg w-full p-5 sm:p-6 shadow-[0_0_35px_rgba(245,158,11,0.2)] flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm select-none">
+      <div className="bg-[#050505] border border-neutral-800 max-w-lg w-full p-4 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] relative">
+        {/* Technical Corner Registration Marks */}
+        <div className="absolute top-1 left-1 font-mono text-[9px] text-neutral-600">⌜ PILOT-LOG ⌝</div>
+        <div className="absolute top-1 right-1 font-mono text-[9px] text-neutral-600">⌞ RANK-01 ⌟</div>
+
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-400" />
-            <h2 className="font-pixel text-base sm:text-lg text-white">
-              PILOT HALL OF FAME
-            </h2>
+        <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+          <div className="flex items-center gap-3">
+            <GameLogo size="xs" showSubtitle={false} />
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-oxanium font-bold text-base sm:text-lg text-white uppercase tracking-wider">
+                  PILOT HALL OF FAME
+                </h2>
+                <span className="font-mono text-[9px] text-neutral-500">[RANKINGS]</span>
+              </div>
+              <div className="font-kanji text-[10px] text-neutral-400">
+                パイロット飛行殿堂 · 軌道到達記録
+              </div>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-white transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Player Personal Card */}
-        <div className="my-4 bg-slate-900/90 border border-amber-500/50 rounded-lg p-3.5 flex items-center justify-between">
+        <div className="my-3 bg-neutral-950 border border-amber-500/50 p-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center border border-amber-500/40">
-              <User className="w-5 h-5" />
+            <div className="w-8 h-8 bg-amber-500/10 text-amber-300 flex items-center justify-center border border-amber-500/40">
+              <User className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-pixel text-xs text-white">YOU (PILOT)</div>
-              <div className="text-[10px] font-mono text-slate-400">
-                Rank #{playerRank} · {stats.totalRuns} Flights Total
+              <div className="font-oxanium font-bold text-xs text-white">YOU (ACTIVE PILOT)</div>
+              <div className="text-[10px] font-mono text-neutral-400">
+                RANK #{playerRank} &middot; {stats.totalRuns} FLIGHTS RECORDED
               </div>
             </div>
           </div>
           <div className="text-right">
-            <div className="font-pixel text-base text-amber-300 tabular-nums font-bold">
-              {stats.highScore} FT
+            <div className="font-doto text-xl sm:text-2xl text-amber-300 tabular-nums font-bold leading-none">
+              {stats.highScore} <span className="font-oxanium text-xs text-amber-400 font-normal">FT</span>
             </div>
-            <div className="text-[9px] font-retro text-slate-400">PERSONAL BEST</div>
+            <div className="text-[9px] font-mono text-neutral-500">PERSONAL BEST</div>
           </div>
         </div>
 
         {/* Global Standings Table */}
-        <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-1">
-          <div className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-1">
-            Global High Orbit Telemetry
+        <div className="flex-1 overflow-y-auto space-y-1.5 mb-3 pr-1">
+          <div className="flex items-center justify-between text-[10px] font-mono text-neutral-500 uppercase tracking-wider mb-1">
+            <span>Global Starbase Telemetry</span>
+            <span className="font-kanji text-neutral-600">公式ランキング</span>
           </div>
 
           {mockPilots.map((pilot) => {
-            const isUserBetter = stats.highScore >= pilot.score;
             return (
               <div
                 key={pilot.name}
-                className="flex items-center justify-between p-2.5 rounded bg-black/60 border border-slate-800 hover:border-slate-700 transition-colors"
+                className="flex items-center justify-between p-2 bg-black border border-neutral-800/80 hover:border-neutral-700 transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <span
-                    className={`font-pixel text-xs w-5 text-center ${
+                    className={`font-oxanium font-bold text-xs w-6 text-center ${
                       pilot.rank === 1
-                        ? 'text-amber-400 font-bold'
+                        ? 'text-amber-400'
                         : pilot.rank === 2
-                        ? 'text-slate-300'
+                        ? 'text-neutral-300'
                         : pilot.rank === 3
-                        ? 'text-amber-700'
-                        : 'text-slate-500'
+                        ? 'text-amber-600'
+                        : 'text-neutral-500'
                     }`}
                   >
-                    #{pilot.rank}
+                    0{pilot.rank}
                   </span>
                   <div>
-                    <div className="font-pixel text-xs text-slate-200">
+                    <div className="font-oxanium font-bold text-xs text-neutral-200">
                       {pilot.name}
                     </div>
-                    <div className="text-[10px] font-mono text-slate-500">
-                      {pilot.vehicle}
+                    <div className="text-[9px] font-mono text-neutral-500">
+                      {pilot.vehicle} &middot; [{pilot.badge}]
                     </div>
                   </div>
                 </div>
 
-                <div className="font-pixel text-sm text-cyan-400 tabular-nums">
-                  {pilot.score} FT
+                <div className="font-oxanium font-bold text-sm text-white tabular-nums">
+                  {pilot.score} <span className="text-[9px] text-neutral-500 font-normal">FT</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Lifetime Telemetry Stats */}
-        <div className="p-3 bg-slate-900/50 border border-slate-800 rounded text-xs font-mono grid grid-cols-2 gap-2 text-slate-300 mb-4">
-          <div>
-            Total Feet Cleared:{' '}
-            <span className="text-white font-bold">{stats.totalFeetCleared} FT</span>
-          </div>
-          <div>
-            Total Barrel Rolls:{' '}
-            <span className="text-cyan-400 font-bold">{stats.barrelRolls}</span>
-          </div>
+        {/* Close Button */}
+        <div className="pt-2 border-t border-neutral-800 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-oxanium font-bold text-xs border border-neutral-700 cursor-pointer transition-colors"
+          >
+            DISMISS &middot; 閉じる
+          </button>
         </div>
-
-        <button
-          onClick={onClose}
-          className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-pixel text-xs rounded border border-slate-700 transition-colors cursor-pointer"
-        >
-          CLOSE
-        </button>
       </div>
     </div>
   );

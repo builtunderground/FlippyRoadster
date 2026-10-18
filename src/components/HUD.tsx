@@ -1,6 +1,7 @@
 import React from 'react';
 import { Volume2, VolumeX, Music, Pause, Play, Shield } from 'lucide-react';
 import { GamePhase } from '../types/game';
+import { GameLogo } from './ui/GameLogo';
 
 interface HUDProps {
   score: number;
@@ -38,72 +39,127 @@ export const HUD: React.FC<HUDProps> = ({
   const isLowPsi = airPsi < 2000;
   const canRoll = airPsi >= 1800 && !isRolling;
 
+  // Japanese phase translation
+  const phaseLabelJapanese =
+    phase === 'SPACE'
+      ? '深宇宙領域'
+      : phase === 'ORBITAL'
+      ? '軌道投入フェーズ'
+      : 'テキサス射場';
+
   return (
     <div
       className="absolute inset-0 z-30 pointer-events-none select-none flex flex-col justify-between p-3 sm:p-5"
       style={{
-        paddingTop: 'max(0.75rem, var(--sat))',
-        paddingBottom: 'max(0.75rem, var(--sab))',
-        paddingLeft: 'max(0.75rem, var(--sal))',
-        paddingRight: 'max(0.75rem, var(--sar))'
+        paddingTop: 'max(0.6rem, var(--sat))',
+        paddingBottom: 'max(0.6rem, var(--sab))',
+        paddingLeft: 'max(0.6rem, var(--sal))',
+        paddingRight: 'max(0.6rem, var(--sar))'
       }}
     >
-      {/* Top Streamlined Bar */}
-      <div className="w-full max-w-4xl mx-auto flex items-center justify-between gap-3 pointer-events-auto">
-        {/* Left: Minimal Cold-Gas Boost / PSI Meter */}
-        <div className="flex items-center gap-2 bg-black/85 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-lg shadow-xl">
-          <span className={`text-[9px] font-label font-bold tracking-wider ${isLowPsi ? 'text-red-500 animate-pulse' : 'text-slate-300'}`}>
-            BOOST
-          </span>
-          <div className="w-20 sm:w-28 h-2.5 bg-black/90 border border-white/15 rounded-sm overflow-hidden p-0.5">
+      {/* Top Streamlined Technical Instrumentation Bar */}
+      <div className="w-full max-w-5xl mx-auto flex items-start justify-between gap-3 pointer-events-auto">
+        {/* Left: Compact Boost / Cold-Gas PSI Gauge (Wider fixed width to prevent dynamic shifting) */}
+        <div className="flex flex-col bg-black/90 border border-neutral-800 p-2 sm:px-3 sm:py-2 shadow-2xl relative w-44 sm:w-56 shrink-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`w-1.5 h-1.5 ${isLowPsi ? 'bg-red-500 animate-pulse' : 'bg-cyan-400'}`} />
+              <span className="font-oxanium font-bold text-[10px] text-white tracking-widest uppercase">
+                PROPULSION
+              </span>
+              <span className="font-kanji text-[9px] text-neutral-400 hidden xs:inline">推進力</span>
+            </div>
+            <span className={`font-mono text-[9px] tabular-nums font-bold shrink-0 ${isLowPsi ? 'text-red-400' : 'text-cyan-400'}`}>
+              {airPsi} PSI
+            </span>
+          </div>
+
+          {/* Sharp Rectangular Meter Bar */}
+          <div className="w-full h-2 bg-neutral-950 border border-neutral-800 p-0.5">
             <div
               className={`h-full transition-all duration-75 ${
-                isLowPsi
-                  ? 'bg-red-600'
-                  : 'bg-cyan-400'
+                isLowPsi ? 'bg-red-600' : 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]'
               }`}
               style={{ width: `${psiPercent}%` }}
             />
           </div>
-        </div>
 
-        {/* Center: Distance in Feet (White informational text, Pixelify Sans) */}
-        <div className="flex flex-col items-center bg-black/85 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-lg shadow-xl">
-          <div className="font-display text-2xl sm:text-3xl text-white tracking-wider tabular-nums font-bold leading-none">
-            {score} <span className="font-label text-xs sm:text-sm text-slate-400 font-normal">FT</span>
+          <div className="flex items-center justify-between text-[8px] font-mono text-neutral-500 mt-1">
+            <span>[COMP-AIR]</span>
+            <span className="truncate">{phaseLabelJapanese}</span>
           </div>
         </div>
 
-        {/* Right: Quick Action Buttons (Sound, Music, Pause) */}
-        <div className="flex items-center gap-1.5 bg-black/85 backdrop-blur-md border border-white/10 p-1.5 rounded-lg shadow-xl">
+        {/* Center: "Flippy Roadster" Game Logo (Visible Always, Doubled Size) & Altitude Display */}
+        <div className="flex flex-col items-center gap-1 w-48 sm:w-64 shrink-0">
+          <GameLogo size="md" showSubtitle={false} className="drop-shadow-[0_0_18px_rgba(232,33,39,0.85)]" />
+
+          <div className="w-full flex flex-col items-center bg-black/90 border border-neutral-800 px-3 py-1 sm:px-6 sm:py-1.5 shadow-2xl">
+            <div className="text-[9px] font-kanji text-neutral-400 uppercase tracking-widest flex items-center justify-center gap-1.5 w-full">
+              <span>標高・距離</span>
+              <span className="font-mono text-neutral-500">[ALTITUDE]</span>
+            </div>
+            <div className="flex items-baseline justify-center gap-1.5 my-0.5">
+              <span className="font-doto font-bold text-2xl sm:text-4xl text-white tracking-tight tabular-nums leading-none">
+                {score}
+              </span>
+              <span className="font-oxanium text-xs sm:text-sm text-red-500 font-bold uppercase tracking-wider">
+                FT
+              </span>
+            </div>
+            <div className="text-[8px] font-mono text-neutral-500 tabular-nums text-center whitespace-nowrap">
+              {Math.round(speedMph)} MPH &middot; MACH {(speedMph / 767).toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Sharp Minimal Control Buttons */}
+        <div className="flex items-center gap-1 bg-black/90 border border-neutral-800 p-1 shadow-2xl shrink-0">
           <button
             onClick={onToggleMute}
-            className="p-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 bg-neutral-900/90 hover:bg-neutral-800 border border-red-900/60 hover:border-red-600/80 transition-all cursor-pointer shadow-[0_0_8px_rgba(232,33,39,0.25)]"
             title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4 text-slate-300" />}
+            {isMuted ? (
+              <VolumeX className="w-4 h-4 text-red-500 drop-shadow-[0_0_6px_rgba(232,33,39,0.85)]" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-red-500 drop-shadow-[0_0_6px_rgba(232,33,39,0.85)]" />
+            )}
           </button>
 
           <button
             onClick={onToggleMusic}
-            className="p-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
-            title={isMusicMuted ? 'Start Music' : 'Stop Music'}
+            className="p-1.5 bg-neutral-900/90 hover:bg-neutral-800 border border-red-900/60 hover:border-red-600/80 transition-all cursor-pointer shadow-[0_0_8px_rgba(232,33,39,0.25)]"
+            title={isMusicMuted ? 'Start Synthwave Music' : 'Mute Music'}
           >
-            <Music className={`w-4 h-4 ${isMusicMuted ? 'text-slate-600' : 'text-purple-400'}`} />
+            <Music
+              className={`w-4 h-4 ${
+                isMusicMuted
+                  ? 'text-red-900/60'
+                  : 'text-red-500 drop-shadow-[0_0_8px_rgba(232,33,39,0.9)] animate-pulse'
+              }`}
+            />
           </button>
 
           <button
             onClick={onTogglePause}
-            className="p-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 hover:text-white transition-colors cursor-pointer"
             title={isPaused ? 'Resume' : 'Pause'}
           >
-            {isPaused ? <Play className="w-4 h-4 text-emerald-400" /> : <Pause className="w-4 h-4 text-slate-300" />}
+            {isPaused ? <Play className="w-4 h-4 text-emerald-400" /> : <Pause className="w-4 h-4 text-neutral-300" />}
           </button>
         </div>
       </div>
 
-      {/* Bottom Floating Mobile Thumb Trigger: BARREL ROLL */}
-      <div className="w-full max-w-4xl mx-auto flex items-end justify-end pointer-events-auto pb-1 sm:pb-3">
+      {/* Bottom Floating Tactical Thumb Trigger: BARREL ROLL */}
+      <div className="w-full max-w-5xl mx-auto flex items-end justify-between pointer-events-auto pb-1 sm:pb-2">
+        {/* Subtle Satirical Engineering Watermark on the left */}
+        <div className="hidden sm:flex flex-col text-[9px] font-mono text-neutral-500 bg-black/70 border border-neutral-900 px-2 py-1">
+          <span>SPACEX COLD-GAS SYSTEM v2.4</span>
+          <span className="text-neutral-600">ZERO CARBON &middot; 100% UNREGULATED</span>
+        </div>
+
+        {/* Sharp Arcade Roll Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -114,16 +170,25 @@ export const HUD: React.FC<HUDProps> = ({
             onTriggerRoll();
           }}
           disabled={!canRoll}
-          className={`flex items-center justify-center gap-2 px-5 py-3 sm:px-6 sm:py-3.5 rounded-xl font-tech text-xs sm:text-sm tracking-wider border transition-all shadow-xl cursor-pointer ${
+          className={`flex items-center justify-center gap-2.5 px-5 py-3 sm:px-6 sm:py-3.5 border transition-all shadow-2xl cursor-pointer ${
             canRoll
-              ? 'bg-slate-950/90 hover:bg-slate-900 active:scale-95 text-white border-cyan-400/80 shadow-[0_0_15px_rgba(6,182,212,0.35)] animate-pulse'
-              : 'bg-black/60 text-slate-600 border-white/5 opacity-50 cursor-not-allowed'
+              ? 'bg-neutral-950 hover:bg-neutral-900 active:bg-neutral-800 text-white border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.35)]'
+              : 'bg-black/80 text-neutral-600 border-neutral-900 opacity-50 cursor-not-allowed'
           }`}
-          title="360° Barrel Roll (Invincibility Shield)"
+          title="Aero Barrel Roll (Invincibility Shield)"
         >
-          <Shield className={`w-4 h-4 sm:w-5 sm:h-5 ${canRoll ? 'text-cyan-400 fill-cyan-400/20' : 'text-slate-600'}`} />
-          <span className="font-bold">{isRolling ? 'ROLLING' : 'ROLL'}</span>
-          <span className="hidden sm:inline text-[10px] font-mono text-slate-400 bg-white/5 px-1 py-0.5 rounded border border-white/10">[B]</span>
+          <Shield className={`w-4 h-4 sm:w-5 sm:h-5 ${canRoll ? 'text-cyan-400 fill-cyan-400/20' : 'text-neutral-600'}`} />
+          <div className="flex flex-col text-left">
+            <span className="font-oxanium font-bold text-xs sm:text-sm tracking-wider uppercase leading-none">
+              {isRolling ? 'ROLLING' : 'BARREL ROLL'}
+            </span>
+            <span className="font-kanji text-[8px] text-cyan-300 font-normal mt-0.5">
+              空力ロール (無敵)
+            </span>
+          </div>
+          <span className="hidden sm:inline text-[9px] font-mono text-neutral-400 bg-neutral-900 px-1 py-0.5 border border-neutral-800">
+            [B]
+          </span>
         </button>
       </div>
     </div>

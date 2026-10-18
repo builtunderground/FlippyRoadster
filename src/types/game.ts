@@ -35,7 +35,7 @@ export interface Obstacle {
   phase: GamePhase;
   topType: 'booster' | 'mechazilla' | 'rigging' | 'satellite' | 'debris' | 'conduit' | 'gantry' | 'crane';
   bottomType: 'cybertruck' | 'model3_stack' | 'cybercab' | 'semi' | 'fleet_platform' | 'generator' | 'battery_pack';
-  hazardType?: 'faa_gate' | 'cryo_vent';
+  hazardType?: 'faa_gate' | 'cryo_vent' | 'jetpack_optimus';
   hazardActive?: boolean;
   hazardTimer?: number;
 }

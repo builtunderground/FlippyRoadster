@@ -14,6 +14,8 @@ import { GarageModal } from './components/GarageModal';
 import { GameOverModal } from './components/GameOverModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal } from './components/SettingsModal';
+import { GameLogo } from './components/ui/GameLogo';
+import { OptimusBot } from './components/ui/OptimusBot';
 
 const STATS_KEY = 'flippy_roadster_stats_v1';
 const SKIN_KEY = 'flippy_roadster_skin_v1';
@@ -22,8 +24,8 @@ const THRUSTER_KEY = 'flippy_roadster_thruster_v1';
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('MENU');
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isMusicMuted, setIsMusicMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => soundEngine.getIsMuted());
+  const [isMusicMuted, setIsMusicMuted] = useState(() => soundEngine.getIsMusicMuted());
   const [scanlinesEnabled, setScanlinesEnabled] = useState(true);
 
   // Active in-run telemetry
@@ -311,29 +313,51 @@ export default function App() {
 
       {/* Paused Overlay */}
       {isPaused && (
-        <div className="absolute inset-0 z-40 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center select-none">
-          <div className="font-pixel text-3xl text-cyan-400 mb-2 tracking-wider">
-            SYSTEM PAUSED
-          </div>
-          <div className="text-xs font-mono text-slate-400 mb-6">
-            SPACEX TELEMETRY HOLD ACTIVE
-          </div>
-          <div className="flex gap-4">
-            <button
-              onClick={() => setIsPaused(false)}
-              className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 font-pixel text-xs text-white rounded transition-colors cursor-pointer"
-            >
-              RESUME (P)
-            </button>
-            <button
-              onClick={() => {
-                setIsPaused(false);
-                setGameState('MENU');
-              }}
-              className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 font-pixel text-xs text-slate-300 rounded transition-colors cursor-pointer"
-            >
-              QUIT TO MENU
-            </button>
+        <div className="absolute inset-0 z-40 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-3 select-none">
+          <div className="bg-[#050505] border border-neutral-800 p-5 sm:p-6 max-w-sm w-full text-center flex flex-col items-center shadow-2xl relative">
+            {/* Game Logo prominently visible in pause menu */}
+            <div className="mb-3">
+              <GameLogo size="sm" showSubtitle={false} />
+            </div>
+
+            <div className="font-oxanium font-bold text-xl sm:text-2xl text-white mb-0.5 tracking-wider uppercase">
+              SYSTEM PAUSED
+            </div>
+            <div className="font-kanji text-[10px] text-neutral-400 mb-1">
+              一時停止 · テレメトリ保持
+            </div>
+            <div className="text-[9px] font-mono text-neutral-500 mb-3">
+              [SPACEX TELEMETRY HOLD ACTIVE]
+            </div>
+
+            {/* Optimus robot standing by during pause */}
+            <div className="w-full mb-4">
+              <OptimusBot
+                mood="idle"
+                statusMessage="FLIGHT TELEMETRY FROZEN. STANDING BY FOR PILOT INPUT."
+                subMessage="OPTIMUS GEN-2 // HOLD PROTOCOL"
+                size="sm"
+                compact={true}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => setIsPaused(false)}
+                className="w-full py-3 bg-red-600 hover:bg-red-500 active:bg-red-700 font-oxanium font-bold text-xs text-white border border-red-400 transition-colors cursor-pointer tracking-wider shadow-[0_0_15px_rgba(232,33,39,0.3)]"
+              >
+                RESUME FLIGHT &middot; 再開 (P)
+              </button>
+              <button
+                onClick={() => {
+                  setIsPaused(false);
+                  setGameState('MENU');
+                }}
+                className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 font-oxanium font-bold text-xs text-neutral-300 hover:text-white transition-colors cursor-pointer tracking-wider"
+              >
+                ABORT TO MENU &middot; メニューへ
+              </button>
+            </div>
           </div>
         </div>
       )}

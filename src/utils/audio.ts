@@ -2,6 +2,7 @@
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   private isMuted: boolean = false;
   private isMusicMuted: boolean = false;
   private musicInterval: number | null = null;
@@ -16,23 +17,48 @@ class SoundEngine {
   ];
 
   constructor() {
-    // AudioContext will be initialized on first user interaction
+    try {
+      const savedMute = localStorage.getItem('flippy_roadster_muted_v1');
+      if (savedMute !== null) {
+        this.isMuted = savedMute === 'true';
+      }
+      const savedMusicMute = localStorage.getItem('flippy_roadster_music_muted_v1');
+      if (savedMusicMute !== null) {
+        this.isMusicMuted = savedMusicMute === 'true';
+      }
+    } catch {}
   }
 
   private initCtx() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
+      this.masterGain.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
 
+  private getDestination(): AudioNode {
+    return this.masterGain || this.ctx!.destination;
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
+    try {
+      localStorage.setItem('flippy_roadster_muted_v1', String(muted));
+    } catch {}
+
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(muted ? 0 : 1, this.ctx.currentTime);
+    }
+
     if (muted) {
       if (this.customAudio) {
+        this.customAudio.muted = true;
         this.customAudio.pause();
       }
       this.stopMusic();
@@ -42,6 +68,9 @@ class SoundEngine {
         }
       } catch {}
     } else {
+      if (this.customAudio) {
+        this.customAudio.muted = false;
+      }
       if (!this.isMusicMuted && this.customAudio) {
         this.customAudio.play().catch(() => {});
       }
@@ -50,7 +79,14 @@ class SoundEngine {
 
   public setMusicMuted(muted: boolean) {
     this.isMusicMuted = muted;
+    try {
+      localStorage.setItem('flippy_roadster_music_muted_v1', String(muted));
+    } catch {}
+
     if (muted) {
+      if (this.customAudio) {
+        this.customAudio.pause();
+      }
       this.stopMusic();
     } else if (!this.isMuted) {
       this.startMusic();
@@ -85,7 +121,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + (isFinal ? 0.35 : 0.18));
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.getDestination());
 
     osc.start(now);
     osc.stop(now + (isFinal ? 0.38 : 0.2));
@@ -110,7 +146,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.getDestination());
 
     osc.start(now);
     osc.stop(now + 0.13);
@@ -136,7 +172,7 @@ class SoundEngine {
 
     noise.connect(filter);
     filter.connect(noiseGain);
-    noiseGain.connect(this.ctx.destination);
+    noiseGain.connect(this.getDestination());
 
     noise.start(now);
     noise.stop(now + 0.1);
@@ -168,7 +204,7 @@ class SoundEngine {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.getDestination());
 
     osc.start(now);
     osc.stop(now + 0.42);
@@ -192,7 +228,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.getDestination());
 
     osc.start(now);
     osc.stop(now + 0.22);
@@ -218,7 +254,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.getDestination());
 
     osc.start(now);
     osc.stop(now + 0.32);
@@ -243,7 +279,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.getDestination());
 
     osc.start(now);
     osc.stop(now + 0.46);
@@ -262,7 +298,7 @@ class SoundEngine {
     nGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
 
     noise.connect(nGain);
-    nGain.connect(this.ctx.destination);
+    nGain.connect(this.getDestination());
 
     noise.start(now);
     noise.stop(now + 0.36);
@@ -294,7 +330,7 @@ class SoundEngine {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.getDestination());
 
     noise.start(now);
     noise.stop(now + 0.21);
@@ -331,7 +367,8 @@ class SoundEngine {
     this.customAudio = new Audio(url);
     this.customAudio.loop = true;
     this.customAudio.volume = 0.65;
-    if (!this.isMusicMuted) {
+    this.customAudio.muted = this.isMuted;
+    if (!this.isMusicMuted && !this.isMuted) {
       this.customAudio.play().catch(() => {});
     }
   }
@@ -347,6 +384,7 @@ class SoundEngine {
       const audio = new Audio(this.customAudioUrl);
       audio.loop = true;
       audio.volume = 0.65;
+      audio.muted = this.isMuted;
 
       // Fallback to online hosted mp3 if local relative path 404s
       audio.onerror = () => {
@@ -359,10 +397,13 @@ class SoundEngine {
     }
 
     if (this.customAudio) {
-      this.customAudio.play().catch(() => {
-        // Fallback to procedural synth if media playback is restricted
-        this.startProceduralSynth();
-      });
+      this.customAudio.muted = this.isMuted;
+      if (!this.isMuted && !this.isMusicMuted) {
+        this.customAudio.play().catch(() => {
+          // Fallback to procedural synth if media playback is restricted
+          this.startProceduralSynth();
+        });
+      }
       return;
     }
 
@@ -379,7 +420,7 @@ class SoundEngine {
 
     this.musicStep = 0;
     this.musicInterval = window.setInterval(() => {
-      if (!this.ctx || this.isMusicMuted) return;
+      if (!this.ctx || this.isMusicMuted || this.isMuted) return;
       const now = this.ctx.currentTime;
       const step = this.musicStep % 8;
 
@@ -399,7 +440,7 @@ class SoundEngine {
 
       bassOsc.connect(bassFilter);
       bassFilter.connect(bassGain);
-      bassGain.connect(this.ctx.destination);
+      bassGain.connect(this.getDestination());
 
       bassOsc.start(now);
       bassOsc.stop(now + 0.17);
@@ -413,7 +454,7 @@ class SoundEngine {
         hhGain.gain.setValueAtTime(0.04, now);
         hhGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
         hhOsc.connect(hhGain);
-        hhGain.connect(this.ctx.destination);
+        hhGain.connect(this.getDestination());
         hhOsc.start(now);
         hhOsc.stop(now + 0.06);
       }
@@ -427,7 +468,7 @@ class SoundEngine {
         leadGain.gain.setValueAtTime(0.05, now);
         leadGain.gain.exponentialRampToValueAtTime(0.005, now + 0.14);
         leadOsc.connect(leadGain);
-        leadGain.connect(this.ctx.destination);
+        leadGain.connect(this.getDestination());
         leadOsc.start(now);
         leadOsc.stop(now + 0.15);
       }

@@ -207,7 +207,15 @@ export class PixelRenderer {
     drawWheel(ox + 14, oy + 17); // Rear wheel
     drawWheel(ox + w - 16, oy + 17); // Front wheel
 
-    // Cold-Gas Thruster Nozzle at the rear
+    // Bottom Cold-Gas Reaction Jet Nozzles under the chassis
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(ox + 21, oy + 17, 5, 2); // Rear-belly downward nozzle
+    ctx.fillRect(ox + 37, oy + 17, 5, 2); // Mid-belly downward nozzle
+    ctx.fillStyle = '#64748B';
+    ctx.fillRect(ox + 22, oy + 17, 3, 1);
+    ctx.fillRect(ox + 38, oy + 17, 3, 1);
+
+    // Rear Cold-Gas Thruster Nozzle
     ctx.fillStyle = '#1E293B';
     ctx.fillRect(ox - 3, oy + 12, 4, 4);
     ctx.fillStyle = '#64748B';
@@ -218,7 +226,7 @@ export class PixelRenderer {
       const flicker = (frameTick % 4);
       const exhaustLen = 28 + flicker * 4;
 
-      // Outer plasma flame
+      // 1. Rear Main Plasma Flame
       ctx.fillStyle = thrusterColor.outerColor;
       ctx.beginPath();
       ctx.moveTo(ox - 4, oy + 12);
@@ -236,17 +244,54 @@ export class PixelRenderer {
       ctx.closePath();
       ctx.fill();
 
-      // Shock diamonds in supersonic exhaust
+      // Shock diamonds in supersonic rear exhaust
       ctx.fillStyle = '#FFFFFF';
       for (let i = 1; i <= 3; i++) {
         const sx = ox - 4 - (i * 7);
         ctx.fillRect(sx, oy + 13, 3, 2);
       }
+
+      // 2. Dual Bottom Air Jets (Downward VTOL / Altitude Thrusters)
+      const bottomJets = [ox + 23, ox + 39];
+      const bottomJetLen = 14 + (frameTick % 3) * 3;
+
+      for (const bjX of bottomJets) {
+        // Outer downward expansion plume
+        ctx.fillStyle = thrusterColor.outerColor;
+        ctx.beginPath();
+        ctx.moveTo(bjX - 2, oy + 19);
+        ctx.lineTo(bjX - 4, oy + 19 + bottomJetLen);
+        ctx.lineTo(bjX + 4, oy + 19 + bottomJetLen);
+        ctx.lineTo(bjX + 2, oy + 19);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner white-hot supersonic core
+        ctx.fillStyle = thrusterColor.coreColor;
+        ctx.beginPath();
+        ctx.moveTo(bjX - 1, oy + 19);
+        ctx.lineTo(bjX - 2, oy + 19 + Math.round(bottomJetLen * 0.65));
+        ctx.lineTo(bjX + 2, oy + 19 + Math.round(bottomJetLen * 0.65));
+        ctx.lineTo(bjX + 1, oy + 19);
+        ctx.closePath();
+        ctx.fill();
+
+        // Supersonic shock diamond rings along downward column
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(bjX - 2, oy + 22, 4, 1);
+        ctx.fillRect(bjX - 2, oy + 26, 4, 1);
+      }
     } else {
-      // Small idle cold-gas pilot pulse
+      // Small idle cold-gas pilot pulse at rear
       if (frameTick % 8 < 4) {
         ctx.fillStyle = 'rgba(0, 216, 255, 0.4)';
         ctx.fillRect(ox - 7, oy + 13, 3, 2);
+      }
+      // Periodic micro-pulse on bottom air jets (attitude stabilization)
+      if (frameTick % 12 < 4) {
+        ctx.fillStyle = 'rgba(0, 216, 255, 0.35)';
+        ctx.fillRect(ox + 22, oy + 19, 3, 3);
+        ctx.fillRect(ox + 38, oy + 19, 3, 3);
       }
     }
 
@@ -742,61 +787,179 @@ export class PixelRenderer {
     if (!obs.hazardType) return;
 
     if (obs.hazardType === 'faa_gate') {
-      // FAA Regulatory Warning Sign in the center gap
-      const gx = obs.x - 10;
-      const gy = obs.gapY + obs.gapSize / 2 - 24;
-      const gw = 100;
-      const gh = 48;
+      // FAA Regulatory Drone Gate in the center gap (compact, easily navigated above or below)
+      const gx = obs.x + 8;
+      const gy = obs.gapY + obs.gapSize / 2 - 12;
+      const gw = 54;
+      const gh = 24;
 
       ctx.save();
-      // Flashing warning border
-      const blink = Math.sin(frameTick * 0.2) > 0;
-      ctx.fillStyle = '#000000';
+      // Flashing technical border
+      const blink = Math.sin(frameTick * 0.25) > 0;
+      ctx.fillStyle = '#05070E';
       ctx.fillRect(gx, gy, gw, gh);
 
       ctx.strokeStyle = blink ? '#EF4444' : '#F59E0B';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 1.5;
       ctx.strokeRect(gx, gy, gw, gh);
+
+      // Drone rotor arms
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(gx - 4, gy + 10, 4, 4);
+      ctx.fillRect(gx + gw, gy + 10, 4, 4);
 
       // Warning text
       ctx.fillStyle = blink ? '#FCA5A5' : '#FEF08A';
-      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.font = 'bold 8px "Oxanium", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('NOT APPROVED', gx + gw / 2, gy + 14);
-      ctx.fillText('FOR PUBLIC', gx + gw / 2, gy + 24);
-      ctx.fillText('ROAD USE', gx + gw / 2, gy + 34);
+      ctx.fillText('FAA RESTRICTED', gx + gw / 2, gy + 11);
 
-      // Small FAA badge
-      ctx.fillStyle = '#EF4444';
-      ctx.font = '7px "Press Start 2P", monospace';
-      ctx.fillText('⊛ FAA', gx + gw / 2, gy + 44);
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = '6px "Silkscreen", monospace';
+      ctx.fillText('[SLIP OVER/UNDER]', gx + gw / 2, gy + 20);
 
       ctx.restore();
     } else if (obs.hazardType === 'cryo_vent') {
       // High-pressure cryo vent erupting from bottom platform
       const vx = obs.x + obs.width / 2;
       const vy = canvasHeight - obs.bottomHeight;
-      const plumeHeight = 110 + Math.sin(frameTick * 0.4) * 20;
+      const plumeHeight = Math.min(obs.gapSize * 0.55, 110 + Math.sin(frameTick * 0.4) * 15);
 
       ctx.save();
-      // Cold gas plume
+      // Cold gas plume (updraft)
       const grad = ctx.createLinearGradient(vx, vy, vx, vy - plumeHeight);
-      grad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
-      grad.addColorStop(0.4, 'rgba(186, 230, 253, 0.6)');
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+      grad.addColorStop(0.35, 'rgba(186, 230, 253, 0.45)');
       grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
 
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.moveTo(vx - 14, vy);
-      ctx.lineTo(vx - 22, vy - plumeHeight);
-      ctx.lineTo(vx + 22, vy - plumeHeight);
-      ctx.lineTo(vx + 14, vy);
+      ctx.moveTo(vx - 12, vy);
+      ctx.lineTo(vx - 18, vy - plumeHeight);
+      ctx.lineTo(vx + 18, vy - plumeHeight);
+      ctx.lineTo(vx + 12, vy);
       ctx.closePath();
       ctx.fill();
 
       // Vent nozzle
       ctx.fillStyle = '#0284C7';
-      ctx.fillRect(vx - 10, vy - 6, 20, 8);
+      ctx.fillRect(vx - 8, vy - 5, 16, 6);
+      ctx.fillStyle = '#38BDF8';
+      ctx.fillRect(vx - 6, vy - 4, 12, 2);
+      ctx.restore();
+    } else if (obs.hazardType === 'jetpack_optimus') {
+      // Randomised Jetpack Optimus Patrol Obstacle hovering inside the gap!
+      const ox = obs.x + obs.width / 2;
+      const hoverBob = Math.sin(frameTick * 0.08 + obs.x * 0.05) * 22;
+      const oy = obs.gapY + obs.gapSize / 2 + hoverBob;
+
+      ctx.save();
+      ctx.translate(Math.round(ox), Math.round(oy));
+
+      if (obs.hazardActive) {
+        ctx.rotate(frameTick * 0.18);
+        ctx.globalAlpha = 0.6;
+      }
+
+      // 1. Dual Rocket Jetpack Exhaust Plumes (Downward thrust)
+      const jetLen = 14 + (frameTick % 4) * 3;
+      const jetPipes = [-9, 9];
+
+      for (const jx of jetPipes) {
+        // Outer cyan flame
+        ctx.fillStyle = '#00D8FF';
+        ctx.beginPath();
+        ctx.moveTo(jx - 3, 14);
+        ctx.lineTo(jx, 14 + jetLen);
+        ctx.lineTo(jx + 3, 14);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner white-hot plasma core
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.moveTo(jx - 1.5, 14);
+        ctx.lineTo(jx, 14 + Math.round(jetLen * 0.6));
+        ctx.lineTo(jx + 1.5, 14);
+        ctx.closePath();
+        ctx.fill();
+
+        // Nozzle ring
+        ctx.fillStyle = '#1E293B';
+        ctx.fillRect(jx - 3, 11, 6, 4);
+        ctx.fillStyle = '#64748B';
+        ctx.fillRect(jx - 2, 12, 4, 2);
+      }
+
+      // Jetpack main backpack unit
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-11, -8, 22, 18);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-9, -6, 18, 14);
+      // Twin high-pressure fuel tanks on pack
+      ctx.fillStyle = '#E2E8F0';
+      ctx.fillRect(-10, -5, 5, 12);
+      ctx.fillRect(5, -5, 5, 12);
+
+      // 2. Optimus Gen-2 Robot Body in Flight Hover Pose
+      // Pelvis & Legs
+      ctx.fillStyle = '#1E293B';
+      ctx.fillRect(-5, 6, 10, 3);
+      // Left leg angled back
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(-6, 8, 4, 7);
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-6, 15, 5, 3);
+      // Right leg angled back
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(2, 8, 4, 7);
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(1, 15, 5, 3);
+
+      // Torso & Matte White Tesla Chest
+      ctx.fillStyle = '#1E293B';
+      ctx.fillRect(-6, -6, 12, 12);
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(-5, -5, 10, 9);
+      // Glowing core badge
+      ctx.fillStyle = '#00F0FF';
+      ctx.fillRect(-1, -3, 2, 2);
+
+      // Arms: gripping jetpack steering handles
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(-9, -4, 3, 8);
+      ctx.fillRect(6, -4, 3, 8);
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-9, 4, 3, 3);
+      ctx.fillRect(6, 4, 3, 3);
+
+      // Head: Matte White Helmet with Black Visor & Scanning Red/Cyan LED
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(-2, -9, 4, 3); // neck
+      ctx.fillStyle = '#E2E8F0';
+      ctx.fillRect(-5, -17, 10, 8);
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(-4, -18, 8, 2);
+      // Black visor
+      ctx.fillStyle = '#050505';
+      ctx.fillRect(-4, -15, 8, 5);
+      // Scanning optical laser line
+      const scanX = Math.floor((frameTick * 0.9) % 6);
+      ctx.fillStyle = '#00F0FF';
+      ctx.fillRect(-3 + scanX, -13, 2, 1);
+
+      // 3. Technical Hologram Radar Tag Floating Above
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(-28, -27, 56, 9);
+      ctx.strokeStyle = '#00F0FF';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-28, -27, 56, 9);
+
+      ctx.fillStyle = '#00F0FF';
+      ctx.font = 'bold 7px "Oxanium", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(obs.hazardActive ? 'DEFLECTED' : 'OPTIMUS JETPACK', 0, -20);
+
       ctx.restore();
     }
   }
@@ -1367,6 +1530,153 @@ export class PixelRenderer {
         ctx.arc(cx, height - 68 - bob, 3.5, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      // Optimus Gen-2 Humanoid Robot standing by on the Starbase staging pad
+      const optimusSpacing = 420;
+      const optOffset = ((scrollX * 0.4) % optimusSpacing);
+      const optX = (width * 0.35 - optOffset + optimusSpacing) % optimusSpacing;
+      PixelRenderer.drawOptimus(ctx, optX, height - 82, frameTick, 'cheer', 0.85);
+    }
+
+    ctx.restore();
+  }
+
+  // Draw Tesla Optimus Gen-2 Humanoid Robot
+  public static drawOptimus(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    frameTick: number = 0,
+    mood: 'idle' | 'cheer' | 'wrench' | 'alert' = 'idle',
+    scale: number = 1
+  ) {
+    ctx.save();
+    ctx.translate(Math.round(x), Math.round(y));
+    if (scale !== 1) {
+      ctx.scale(scale, scale);
+    }
+
+    const bob = Math.sin(frameTick * 0.08) * 1.5;
+    const wave = Math.sin(frameTick * 0.16);
+
+    // Shadow on the ground
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(0, 24, 10, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs (Bipedal robotic limbs with white thigh guards and titanium knee actuators)
+    // Left leg
+    ctx.fillStyle = '#1E293B'; // Dark titanium skeleton
+    ctx.fillRect(-6, 8, 4, 14);
+    ctx.fillStyle = '#F8FAFC'; // White thigh armor
+    ctx.fillRect(-7, 8, 5, 7);
+    ctx.fillStyle = '#64748B'; // Knee joint
+    ctx.fillRect(-6, 14, 4, 2);
+    ctx.fillStyle = '#0F172A'; // Foot
+    ctx.fillRect(-8, 22, 6, 2);
+
+    // Right leg
+    ctx.fillStyle = '#1E293B';
+    ctx.fillRect(2, 8, 4, 14);
+    ctx.fillStyle = '#F8FAFC'; // White thigh armor
+    ctx.fillRect(2, 8, 5, 7);
+    ctx.fillStyle = '#64748B'; // Knee joint
+    ctx.fillRect(2, 14, 4, 2);
+    ctx.fillStyle = '#0F172A'; // Foot
+    ctx.fillRect(2, 22, 6, 2);
+
+    // Pelvis & Lower Torso
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(-6, 5 + bob * 0.4, 12, 4);
+
+    // Upper Torso & Chest Armor (Iconic sleek matte white Tesla Optimus chest)
+    ctx.fillStyle = '#1E293B'; // Dark internal structure
+    ctx.fillRect(-7, -8 + bob, 14, 14);
+    ctx.fillStyle = '#F8FAFC'; // White chest plate
+    ctx.fillRect(-6, -7 + bob, 12, 10);
+    ctx.fillStyle = '#CBD5E1'; // Chest bevel
+    ctx.fillRect(-4, -6 + bob, 8, 2);
+
+    // Glowing chest power badge (Tesla badge / pulse node)
+    ctx.fillStyle = mood === 'alert' ? '#E82127' : '#00F0FF';
+    ctx.fillRect(-1, -4 + bob, 2, 2);
+
+    // Neck & Collar
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(-2, -11 + bob, 4, 3);
+
+    // Head: Iconic Tesla Optimus Helmet (Matte white shell with seamless black glass face visor)
+    ctx.fillStyle = '#E2E8F0'; // White helmet rear shell
+    ctx.fillRect(-5, -20 + bob, 10, 9);
+    ctx.fillStyle = '#F8FAFC'; // Top crown
+    ctx.fillRect(-4, -21 + bob, 8, 2);
+
+    // Black faceplate glass visor
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(-4, -18 + bob, 8, 6);
+
+    // Animated Optical Scan Visor (Cyan or Red laser line sweeping across visor)
+    const scanPos = Math.floor(((frameTick * 0.8) % 6));
+    ctx.fillStyle = mood === 'alert' ? '#FF2222' : '#00F0FF';
+    ctx.fillRect(-3 + scanPos, -16 + bob, 2, 1);
+    ctx.fillStyle = mood === 'alert' ? 'rgba(255, 34, 34, 0.4)' : 'rgba(0, 240, 255, 0.4)';
+    ctx.fillRect(-4, -16 + bob, 8, 1);
+
+    // Arms
+    if (mood === 'cheer') {
+      // Right arm raised high waving!
+      ctx.fillStyle = '#1E293B';
+      ctx.fillRect(6, -8 + bob, 4, 4); // Shoulder
+      ctx.fillStyle = '#F8FAFC'; // White shoulder cap
+      ctx.fillRect(6, -9 + bob, 4, 3);
+      // Forearm raised waving
+      const armAngle = wave * 0.35;
+      ctx.save();
+      ctx.translate(8, -6 + bob);
+      ctx.rotate(-2.2 + armAngle);
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(0, 0, 3, 12);
+      ctx.fillStyle = '#00F0FF'; // Cyber palm glow
+      ctx.fillRect(0, 10, 3, 2);
+      ctx.restore();
+
+      // Left arm resting
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(-10, -7 + bob, 3, 11);
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-10, 4 + bob, 3, 3);
+    } else if (mood === 'wrench') {
+      // Holding telemetry datapad / wrench in front
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(-10, -7 + bob, 3, 9);
+      ctx.fillRect(7, -7 + bob, 3, 9);
+      // Datapad / Wrench in hands
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-4, 0 + bob, 8, 6);
+      ctx.fillStyle = '#00F0FF'; // Glowing datapad screen
+      ctx.fillRect(-3, 1 + bob, 6, 4);
+    } else {
+      // Idle pose with slight robotic micro-adjustments
+      // Left arm
+      ctx.fillStyle = '#F8FAFC'; // White shoulder
+      ctx.fillRect(-10, -8 + bob, 4, 4);
+      ctx.fillStyle = '#334155'; // Elbow
+      ctx.fillRect(-9, -4 + bob, 3, 7);
+      ctx.fillStyle = '#F8FAFC'; // Forearm
+      ctx.fillRect(-9, 0 + bob, 3, 6);
+      ctx.fillStyle = '#0F172A'; // Robotic hand
+      ctx.fillRect(-9, 6 + bob, 3, 3);
+
+      // Right arm
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(6, -8 + bob, 4, 4);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(6, -4 + bob, 3, 7);
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(6, 0 + bob, 3, 6);
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(6, 6 + bob, 3, 3);
     }
 
     ctx.restore();

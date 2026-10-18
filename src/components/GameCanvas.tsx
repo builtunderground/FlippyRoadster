@@ -120,20 +120,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     s.isThrusting = true;
 
-    // During COUNTDOWN, just emit cosmetic thruster flame
+    // During COUNTDOWN, if tapped, immediately launch so restart is instantaneous!
     if (gameState === 'COUNTDOWN') {
       soundEngine.playThrust();
+      if (onCountdownComplete) {
+        onCountdownComplete();
+      }
       return;
     }
 
-    // Check if sufficient PSI (more forgiving: 80 PSI cost)
-    if (s.airPsi > 50) {
-      s.vy = -6.4; // Gentler, more controllable upward impulse
-      s.airPsi = Math.max(0, s.airPsi - 80);
-      s.speedMph = Math.min(720, s.speedMph + 20);
+    const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || ('ontouchstart' in window));
+
+    // Check if sufficient PSI (forgiving: 45 PSI cost on mobile for rapid tapping)
+    const psiCost = isMobile ? 55 : 75;
+    if (s.airPsi > 35) {
+      s.vy = isMobile ? -6.85 : -6.4; // Snappier upward impulse on mobile
+      s.airPsi = Math.max(0, s.airPsi - psiCost);
+      s.speedMph = Math.min(820, s.speedMph + (isMobile ? 28 : 20));
       soundEngine.playThrust();
 
-      // Generate exhaust particles
+      // Generate rear exhaust particles
       for (let i = 0; i < 4; i++) {
         s.particles.push({
           x: s.x - 30,
@@ -148,8 +154,27 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           type: 'thrust'
         });
       }
+
+      // Generate bottom air jet downward particles (VTOL reaction thrusters)
+      const bottomJetXOffsets = [-6, 10];
+      for (const ox of bottomJetXOffsets) {
+        for (let i = 0; i < 2; i++) {
+          s.particles.push({
+            x: s.x + ox + (Math.random() * 4 - 2),
+            y: s.y + 11,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: Math.random() * 4 + 3.5, // High speed downward air blast
+            size: Math.random() * 2.5 + 1.5,
+            life: 0,
+            maxLife: 14,
+            color: '#FFFFFF',
+            alpha: 0.9,
+            type: 'thrust'
+          });
+        }
+      }
     }
-  }, [gameState, isPaused, currentThruster]);
+  }, [gameState, isPaused, currentThruster, onCountdownComplete]);
 
   const handleThrustEnd = useCallback(() => {
     stateRef.current.isThrusting = false;
@@ -298,8 +323,29 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const canvasH = canvas.height;
       const centerY = canvasH * 0.5;
 
-      // Clearance gap (195px - 225px)
-      const gapSize = phase === 'SPACE' ? 195 : phase === 'ORBITAL' ? 208 : 225;
+      // Determine dynamic hazard chance (including randomised Jetpack Optimus obstacle!)
+      let hazardType: Obstacle['hazardType'] = undefined;
+      const roll = Math.random();
+      if (roll < 0.18) {
+        // Randomised Jetpack Optimus flight patrol in all phases!
+        hazardType = 'jetpack_optimus';
+      } else if (phase === 'ORBITAL' || phase === 'SPACE') {
+        if (roll < 0.32) {
+          hazardType = 'faa_gate';
+        } else if (roll < 0.44) {
+          hazardType = 'cryo_vent';
+        }
+      }
+
+      // Clearance gap (generous and fair: 215px - 240px, plus extra headroom for hazards)
+      let gapSize = phase === 'SPACE' ? 215 : phase === 'ORBITAL' ? 225 : 238;
+      if (hazardType === 'cryo_vent') {
+        gapSize += 35; // Extra vertical headroom to easily navigate upward updraft
+      } else if (hazardType === 'faa_gate') {
+        gapSize += 45; // Extra clearance above and below inspection drone
+      } else if (hazardType === 'jetpack_optimus') {
+        gapSize += 50; // Extra room to either fly over or dive under Jetpack Optimus
+      }
 
       // Center the focal area at the vertical center of the screen
       // Constrains gap center to a comfortable window around centerY
@@ -310,7 +356,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       let gapCenter: number;
       if (lastGapYRef.current !== null) {
         const lastCenter = lastGapYRef.current + gapSize / 2;
-        const delta = (Math.random() * 2 - 1) * 55;
+        const delta = (Math.random() * 2 - 1) * 50;
         gapCenter = Math.max(minCenter, Math.min(maxCenter, Math.round(lastCenter + delta)));
       } else {
         gapCenter = centerY;
@@ -347,17 +393,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ];
       const bottomType = bottomTypes[Math.floor(Math.random() * bottomTypes.length)];
 
-      // Dynamic hazard chance (gentle rate)
-      let hazardType: Obstacle['hazardType'] = undefined;
-      if (phase === 'ORBITAL' || phase === 'SPACE') {
-        const roll = Math.random();
-        if (roll < 0.18) {
-          hazardType = 'faa_gate';
-        } else if (roll < 0.32) {
-          hazardType = 'cryo_vent';
-        }
-      }
-
       stateRef.current.obstacles.push({
         x: spawnX,
         width: 70,
@@ -390,6 +425,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const cw = canvas.width;
       const ch = canvas.height;
 
+      const isMobile = cw < 768 || (typeof window !== 'undefined' && ('ontouchstart' in window));
+
       // Handle COUNTDOWN state
       if (gameState === 'COUNTDOWN') {
         s.frameTick++;
@@ -399,9 +436,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         s.y = ch / 2 + Math.sin(s.frameTick * 0.08) * 3;
         s.angle = 0;
 
-        // Calculate countdown second (3 -> 2 -> 1 -> 0)
-        // Each count lasts ~45 frames (~0.75s)
-        const currentSec = 3 - Math.floor(s.countdownFrame / 45);
+        // Quicker countdown pacing (24 frames on mobile ~1.2s total vs 45 frames)
+        const framesPerCount = isMobile ? 24 : 36;
+        const currentSec = 3 - Math.floor(s.countdownFrame / framesPerCount);
 
         if (currentSec !== s.lastBeepSecond && currentSec >= 0) {
           s.lastBeepSecond = currentSec;
@@ -438,7 +475,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
 
         // Transition from COUNTDOWN to PLAYING when complete
-        if (s.countdownFrame >= 180) {
+        if (s.countdownFrame >= framesPerCount * 3) {
           if (onCountdownComplete) {
             onCountdownComplete();
           }
@@ -448,13 +485,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // Handle PLAYING state
       if (gameState === 'PLAYING' && !isPaused) {
         s.frameTick++;
-        // Easier scroll speed: 2.4 (down from 3.2)
-        s.scrollX += 2.4;
+        // Quicker mobile gameplay: faster scroll velocity
+        const baseSpeed = isMobile ? 3.6 : 2.6;
+        const speedBonus = Math.min(2.5, s.score * 0.01);
+        s.scrollX += baseSpeed + speedBonus;
 
-        // Hold to Barrel Roll mechanic (0.35s hold ~ 21 frames)
+        // Hold to Barrel Roll mechanic (snappier on mobile: 14 frames ~0.23s)
+        const holdThreshold = isMobile ? 14 : 20;
         if (s.isThrusting && !s.hasTriggeredHoldRoll) {
           s.holdDuration++;
-          if (s.holdDuration >= 21) {
+          if (s.holdDuration >= holdThreshold) {
             performBarrelRoll();
             s.hasTriggeredHoldRoll = true;
           }
@@ -477,8 +517,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         }
 
-        // Physics: Gentler Gravity & Velocity (0.28 instead of 0.38)
-        const gravity = 0.28;
+        // Physics: Snappier, responsive gravity on mobile for rapid thumb tapping
+        const gravity = isMobile ? 0.34 : 0.28;
         s.vy += gravity;
         s.y += s.vy;
 
@@ -493,13 +533,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         }
 
-        // Air pressure replenishment during coasting (faster: +36 PSI/frame)
+        // Air pressure replenishment during coasting (faster on mobile: +48 PSI/frame)
+        const psiRate = isMobile ? 48 : 36;
         if (!s.isThrusting && s.airPsi < s.maxPsi) {
-          s.airPsi = Math.min(s.maxPsi, s.airPsi + 36);
+          s.airPsi = Math.min(s.maxPsi, s.airPsi + psiRate);
         }
 
         // Speedometer calculation
-        const targetSpeed = s.isThrusting ? 620 : 250;
+        const targetSpeed = s.isThrusting ? 660 : 270;
         s.speedMph += (targetSpeed - s.speedMph) * 0.04;
         if (s.speedMph > s.maxSpeedAchieved) {
           s.maxSpeedAchieved = s.speedMph;
@@ -514,9 +555,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           s.phase = 'WACO';
         }
 
-        // Obstacle Spawning (relaxed spacing: 360px)
-        if (s.obstacles.length === 0 || s.lastSpawnX - s.scrollX < cw + 200) {
-          const spawnX = Math.max(cw + 100, s.lastSpawnX + 360);
+        // Obstacle Spawning (quicker cadence on mobile: 275px instead of 360px)
+        const spawnSpacing = isMobile ? 275 : 340;
+        if (s.obstacles.length === 0 || s.lastSpawnX - s.scrollX < cw + 180) {
+          const spawnX = Math.max(cw + 80, s.lastSpawnX + spawnSpacing);
           spawnObstacle(spawnX, s.phase);
           s.lastSpawnX = spawnX;
         }
@@ -547,11 +589,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             soundEngine.playScore();
           }
 
-          // Cryo Vent activation
-          if (obs.hazardType === 'cryo_vent' && obsScreenX < s.x + 80 && obsScreenX > s.x - 40) {
-            // Vent pushes car upward
-            s.vy -= 0.5;
-            if (s.frameTick % 6 === 0) {
+          // Cryo Vent activation: gentle buoyant updraft, capped so it never violently slams car into ceiling
+          if (obs.hazardType === 'cryo_vent' && obsScreenX < s.x + 70 && obsScreenX > s.x - 30) {
+            if (s.vy > -2.2) {
+              s.vy = Math.max(-2.2, s.vy - 0.12);
+            }
+            if (s.frameTick % 10 === 0) {
               soundEngine.playCryoVent();
             }
           }
@@ -576,16 +619,60 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                 triggerCrash();
                 return;
               }
-              // Check FAA Gate hazard collision
+              // Check FAA Gate hazard collision: compact hovering drone banner with ample clearance
               if (obs.hazardType === 'faa_gate') {
-                const gx = obsScreenX - 6;
-                const gy = obs.gapY + obs.gapSize / 2 - 20;
-                const gw = 92;
-                const gh = 40;
+                const gx = obsScreenX + 8;
+                const gy = obs.gapY + obs.gapSize / 2 - 12;
+                const gw = 54;
+                const gh = 24;
                 if (rx + rw > gx && rx < gx + gw && ry + rh > gy && ry < gy + gh) {
                   triggerCrash();
                   return;
                 }
+              }
+
+              // Check Jetpack Optimus hazard collision: hovering flight patrol robot
+              if (obs.hazardType === 'jetpack_optimus' && !obs.hazardActive) {
+                const ox = obsScreenX + obs.width / 2;
+                const hoverBob = Math.sin(s.frameTick * 0.08 + obs.x * 0.05) * 22;
+                const oy = obs.gapY + obs.gapSize / 2 + hoverBob;
+                const optW = 24;
+                const optH = 34;
+                if (
+                  rx + rw > ox - optW / 2 &&
+                  rx < ox + optW / 2 &&
+                  ry + rh > oy - optH / 2 &&
+                  ry < oy + optH / 2
+                ) {
+                  triggerCrash();
+                  return;
+                }
+              }
+            }
+          }
+
+          // Deflect Jetpack Optimus if performing a barrel roll or shielded!
+          if (obs.hazardType === 'jetpack_optimus' && !obs.hazardActive && (s.isRolling || s.hasShield)) {
+            const ox = obsScreenX + obs.width / 2;
+            const hoverBob = Math.sin(s.frameTick * 0.08 + obs.x * 0.05) * 22;
+            const oy = obs.gapY + obs.gapSize / 2 + hoverBob;
+            const dist = Math.hypot(s.x - ox, s.y - oy);
+            if (dist < 40) {
+              obs.hazardActive = true; // Mark deflected!
+              soundEngine.playScore();
+              for (let sp = 0; sp < 14; sp++) {
+                s.particles.push({
+                  x: ox,
+                  y: oy,
+                  vx: (Math.random() - 0.5) * 8,
+                  vy: (Math.random() - 0.5) * 8,
+                  size: 3,
+                  life: 0,
+                  maxLife: 22,
+                  color: '#00F0FF',
+                  alpha: 1,
+                  type: 'spark'
+                });
               }
             }
           }
@@ -810,6 +897,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const handleTouchStart = (e: React.TouchEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
     e.preventDefault();
+
+    if (gameState === 'COUNTDOWN') {
+      soundEngine.playThrust();
+      if (onCountdownComplete) {
+        onCountdownComplete();
+      }
+      return;
+    }
 
     const now = Date.now();
     if (now - lastTouchTimeRef.current < 280) {
