@@ -16,7 +16,12 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal } from './components/SettingsModal';
 import { GameLogo } from './components/ui/GameLogo';
 import { OptimusBot } from './components/ui/OptimusBot';
-import { addLeaderboardEntry, getLastPilotInitials } from './utils/leaderboard';
+import {
+  addLeaderboardEntry,
+  getLastPilotInitials,
+  saveLastPilotInitials,
+  updateLeaderboardEntryInitials
+} from './utils/leaderboard';
 
 const STATS_KEY = 'flippy_roadster_stats_v1';
 const SKIN_KEY = 'flippy_roadster_skin_v1';
@@ -135,9 +140,9 @@ export default function App() {
     }
   };
 
-  const handleCountdownComplete = () => {
+  const handleCountdownComplete = useCallback(() => {
     setGameState('PLAYING');
-  };
+  }, []);
 
   // Handle Score & Telemetry update from GameCanvas
   const handleScoreUpdate = useCallback(
@@ -162,54 +167,60 @@ export default function App() {
       setIsPaused(false);
       setIsThrustActive(false);
 
-      setStats((prev) => {
-        const isNewHigh = finalScore > prev.highScore;
-        const newHighScore = Math.max(prev.highScore, finalScore);
-        const newMaxSpeed = Math.max(prev.maxSpeed, maxRunSpeed);
+      const isNewHigh = finalScore > stats.highScore;
+      const newHighScore = Math.max(stats.highScore, finalScore);
+      const newMaxSpeed = Math.max(stats.maxSpeed, maxRunSpeed);
 
-        // Check new unlocks
-        const newUnlockedSkins = SKINS.filter(
-          (s) => newHighScore >= s.unlockScore
-        ).map((s) => s.id);
-        const newUnlockedThrusters = THRUSTER_COLORS.filter(
-          (t) => newHighScore >= t.unlockScore
-        ).map((t) => t.id);
+      // Check new unlocks
+      const newUnlockedSkins = SKINS.filter(
+        (s) => newHighScore >= s.unlockScore
+      ).map((s) => s.id);
+      const newUnlockedThrusters = THRUSTER_COLORS.filter(
+        (t) => newHighScore >= t.unlockScore
+      ).map((t) => t.id);
 
-        setLastRunStats({
-          score: finalScore,
-          maxSpeed: maxRunSpeed,
-          rolls: rollCount,
-          isNewHigh
-        });
-
-        // Automatically record to shared arcade leaderboard
-        if (finalScore > 0) {
-          const pilotInitials = getLastPilotInitials();
-          addLeaderboardEntry(pilotInitials, finalScore, maxRunSpeed, currentSkinRef.current.name)
-            .then(({ newRank, entryId }) => {
-              setLastRunStats((curr) => ({
-                ...curr,
-                leaderboardRank: newRank,
-                entryId
-              }));
-            })
-            .catch(() => {});
-        }
-
-        return {
-          highScore: newHighScore,
-          totalRuns: prev.totalRuns + 1,
-          totalFeetCleared: prev.totalFeetCleared + finalScore,
-          maxSpeed: newMaxSpeed,
-          barrelRolls: prev.barrelRolls + rollCount,
-          unlockedSkins: Array.from(new Set([...prev.unlockedSkins, ...newUnlockedSkins])),
-          unlockedThrusters: Array.from(new Set([...prev.unlockedThrusters, ...newUnlockedThrusters]))
-        };
+      setLastRunStats({
+        score: finalScore,
+        maxSpeed: maxRunSpeed,
+        rolls: rollCount,
+        isNewHigh
       });
+
+      setStats((prev) => ({
+        highScore: newHighScore,
+        totalRuns: prev.totalRuns + 1,
+        totalFeetCleared: prev.totalFeetCleared + finalScore,
+        maxSpeed: newMaxSpeed,
+        barrelRolls: prev.barrelRolls + rollCount,
+        unlockedSkins: Array.from(new Set([...prev.unlockedSkins, ...newUnlockedSkins])),
+        unlockedThrusters: Array.from(new Set([...prev.unlockedThrusters, ...newUnlockedThrusters]))
+      }));
+
+      // Automatically record to shared arcade leaderboard
+      if (finalScore > 0) {
+        const pilotInitials = getLastPilotInitials();
+        addLeaderboardEntry(pilotInitials, finalScore, maxRunSpeed, currentSkinRef.current.name)
+          .then(({ newRank, entryId }) => {
+            setLastRunStats((curr) => ({
+              ...curr,
+              leaderboardRank: newRank,
+              entryId
+            }));
+          })
+          .catch(() => {});
+      }
 
       setShowGameOver(true);
     },
-    []
+    [stats.highScore, stats.maxSpeed]
+  );
+
+  const handleUpdateInitials = useCallback(
+    (newInitials: string) => {
+      saveLastPilotInitials(newInitials);
+      updateLeaderboardEntryInitials(newInitials, lastRunStats.entryId).catch(() => {});
+    },
+    [lastRunStats.entryId]
   );
 
   // Skin and Thruster selections
@@ -251,24 +262,6 @@ export default function App() {
     setTriggerRollSignal((c) => c + 1);
   };
 
-  // Reset career progress
-  const handleResetProgress = () => {
-    const initialStats: GameStats = {
-      highScore: 0,
-      totalRuns: 0,
-      totalFeetCleared: 0,
-      maxSpeed: 250,
-      barrelRolls: 0,
-      unlockedSkins: ['ano_white'],
-      unlockedThrusters: ['cryo_cyan']
-    };
-    setStats(initialStats);
-    setCurrentSkin(SKINS[0]);
-    setCurrentThruster(THRUSTER_COLORS[0]);
-    localStorage.removeItem(STATS_KEY);
-    localStorage.removeItem(SKIN_KEY);
-    localStorage.removeItem(THRUSTER_KEY);
-  };
 
   // Allow user to upload or drop custom soundtrack if they wish
   const handleCustomAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,12 +292,18 @@ export default function App() {
     window.addEventListener('touchend', handleGlobalRelease);
     window.addEventListener('touchcancel', handleGlobalRelease);
     window.addEventListener('mouseup', handleGlobalRelease);
+    window.addEventListener('blur', handleGlobalRelease);
+    window.addEventListener('pagehide', handleGlobalRelease);
+    document.addEventListener('visibilitychange', handleGlobalRelease);
     return () => {
       window.removeEventListener('pointerup', handleGlobalRelease);
       window.removeEventListener('pointercancel', handleGlobalRelease);
       window.removeEventListener('touchend', handleGlobalRelease);
       window.removeEventListener('touchcancel', handleGlobalRelease);
       window.removeEventListener('mouseup', handleGlobalRelease);
+      window.removeEventListener('blur', handleGlobalRelease);
+      window.removeEventListener('pagehide', handleGlobalRelease);
+      document.removeEventListener('visibilitychange', handleGlobalRelease);
     };
   }, []);
 
@@ -447,7 +446,6 @@ export default function App() {
           onToggleMute={handleToggleMute}
           onToggleMusic={handleToggleMusic}
           onToggleScanlines={() => setScanlinesEnabled((s) => !s)}
-          onResetProgress={handleResetProgress}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -461,6 +459,8 @@ export default function App() {
           barrelRolls={lastRunStats.rolls}
           currentSkin={currentSkin}
           leaderboardRank={lastRunStats.leaderboardRank}
+          activeEntryId={lastRunStats.entryId}
+          onUpdateInitials={handleUpdateInitials}
           onRestart={handleStartRun}
           onOpenLeaderboard={() => setShowLeaderboard(true)}
           onMainMenu={() => {

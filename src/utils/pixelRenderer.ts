@@ -1423,16 +1423,13 @@ export class PixelRenderer {
       ctx.fillStyle = '#F8FAFC';
       ctx.fillRect(vabX + 48, height - 310, 6, 240);
 
-      // Huge Illuminated Marquee Sign: "HOP TO 2028"
+      // Illuminated Architectural Sign: "STARBASE"
       ctx.fillStyle = '#020617';
       ctx.fillRect(vabX + 70, height - 280, 155, 60);
       ctx.fillStyle = '#00F0FF';
-      ctx.font = 'bold 13px "Press Start 2P", monospace';
+      ctx.font = 'bold 12px "Press Start 2P", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('HOP TO', vabX + 148, height - 254);
-      ctx.fillStyle = '#F59E0B';
-      ctx.font = 'bold 17px "Chakra Petch", sans-serif';
-      ctx.fillText('2 0 2 8', vabX + 148, height - 232);
+      ctx.fillText('STARBASE', vabX + 148, height - 245);
 
       // High-bay floodlight array
       ctx.fillStyle = '#F8FAFC';

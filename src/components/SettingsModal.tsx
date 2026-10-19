@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, HelpCircle, Volume2, VolumeX, Music, Monitor, RotateCcw } from 'lucide-react';
+import { X, HelpCircle, Volume2, VolumeX, Music, Monitor } from 'lucide-react';
 import { GameLogo } from './ui/GameLogo';
 
 interface SettingsModalProps {
@@ -9,7 +9,7 @@ interface SettingsModalProps {
   onToggleMute: () => void;
   onToggleMusic: () => void;
   onToggleScanlines: () => void;
-  onResetProgress: () => void;
+  onResetProgress?: () => void;
   onClose: () => void;
 }
 
@@ -20,7 +20,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleMute,
   onToggleMusic,
   onToggleScanlines,
-  onResetProgress,
   onClose
 }) => {
   return (
@@ -170,20 +169,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
 
-        {/* Reset Career Stats */}
-        <div className="pt-2 border-t border-neutral-800 flex items-center justify-between">
-          <button
-            onClick={() => {
-              if (window.confirm('Reset all flight logs and career statistics?')) {
-                onResetProgress();
-              }
-            }}
-            className="flex items-center gap-1.5 text-neutral-500 hover:text-red-400 text-[10px] font-mono cursor-pointer transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>RESET CAREER STATS</span>
-          </button>
-
+        {/* Modal Footer */}
+        <div className="pt-2 border-t border-neutral-800 flex items-center justify-end">
           <button
             onClick={onClose}
             className="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-oxanium font-bold text-xs border border-neutral-700 cursor-pointer transition-colors"

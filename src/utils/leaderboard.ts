@@ -199,6 +199,7 @@ export async function addLeaderboardEntry(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        id: entryId,
         initials: cleanInitials,
         score: Math.round(score),
         maxSpeed: Math.round(maxSpeed),

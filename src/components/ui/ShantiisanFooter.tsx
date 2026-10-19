@@ -37,10 +37,10 @@ export const ShantiisanFooter: React.FC<ShantiisanFooterProps> = ({
           href="https://www.tristanvogt.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center align-middle hover:opacity-80 transition-opacity cursor-pointer mx-0.5"
+          className="inline-flex items-center align-middle hover:opacity-80 transition-opacity cursor-pointer mx-0.5 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none border-0 no-underline shadow-none [-webkit-tap-highlight-color:transparent]"
           title="Tristan Alain Vogt — https://www.tristanvogt.com/"
         >
-          <TavLogo className="h-2.5 w-auto" />
+          <TavLogo className="h-2.5 w-auto outline-none border-0 shadow-none" />
         </a>
         <span className="hidden sm:inline">&middot;</span>
         <a

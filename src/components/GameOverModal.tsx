@@ -1,8 +1,9 @@
-import React from 'react';
-import { RotateCcw, Menu, Trophy } from 'lucide-react';
+import React, { useState } from 'react';
+import { RotateCcw, Menu, Trophy, Check } from 'lucide-react';
 import { Skin } from '../types/game';
 import { GameLogo } from './ui/GameLogo';
 import { ShantiisanFooter } from './ui/ShantiisanFooter';
+import { getLastPilotInitials, saveLastPilotInitials } from '../utils/leaderboard';
 
 interface GameOverModalProps {
   score: number;
@@ -12,6 +13,8 @@ interface GameOverModalProps {
   barrelRolls: number;
   currentSkin: Skin;
   leaderboardRank?: number;
+  activeEntryId?: string;
+  onUpdateInitials?: (newInitials: string) => void;
   onRestart: () => void;
   onOpenGarage?: () => void;
   onOpenLeaderboard?: () => void;
@@ -23,10 +26,27 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   highScore,
   isNewHigh,
   leaderboardRank,
+  onUpdateInitials,
   onRestart,
   onOpenLeaderboard,
   onMainMenu
 }) => {
+  const [initials, setInitials] = useState(() => getLastPilotInitials());
+  const [savedFeedback, setSavedFeedback] = useState(false);
+
+  const handleInitialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    setInitials(val);
+  };
+
+  const handleSaveInitials = () => {
+    const clean = (initials || 'TAV').toUpperCase().slice(0, 3);
+    saveLastPilotInitials(clean);
+    onUpdateInitials?.(clean);
+    setSavedFeedback(true);
+    setTimeout(() => setSavedFeedback(false), 2000);
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md select-none touch-none overflow-y-auto">
       <div className="bg-[#0a0a0a] border border-red-600/40 max-w-md w-full p-5 sm:p-6 shadow-[0_0_50px_rgba(232,33,39,0.2)] text-center flex flex-col items-center relative my-auto">
@@ -76,6 +96,38 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             <div className="text-xs font-mono text-neutral-400 flex items-center gap-2">
               <span>CAREER BEST:</span>
               <span className="text-white font-bold font-oxanium">{highScore.toLocaleString()} FT</span>
+            </div>
+          )}
+
+          {/* Pilot Callsign / Initials Input directly on GameOver */}
+          {score > 0 && (
+            <div className="mt-3 pt-2.5 border-t border-neutral-800 w-full flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-neutral-400 uppercase">CALLSIGN:</span>
+                <input
+                  type="text"
+                  value={initials}
+                  onChange={handleInitialsChange}
+                  onBlur={handleSaveInitials}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveInitials();
+                  }}
+                  maxLength={3}
+                  placeholder="TAV"
+                  className="w-14 bg-black border border-amber-400 text-amber-300 font-doto font-bold text-sm text-center uppercase tracking-widest px-1 py-0.5 outline-none focus:ring-1 focus:ring-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveInitials}
+                  className="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-oxanium font-bold border border-amber-500/40 cursor-pointer transition-colors flex items-center gap-1"
+                >
+                  {savedFeedback ? <Check className="w-3 h-3 text-emerald-400" /> : null}
+                  <span>{savedFeedback ? 'SAVED' : 'SAVE'}</span>
+                </button>
+              </div>
+              <span className="text-[9px] font-mono text-neutral-500 uppercase">
+                {savedFeedback ? 'RECORD SAVED' : 'ENTER INITIALS'}
+              </span>
             </div>
           )}
         </div>

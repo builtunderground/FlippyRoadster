@@ -62,7 +62,7 @@ app.get('/api/leaderboard', (req, res) => {
 // POST /api/leaderboard: submit new high score record
 app.post('/api/leaderboard', (req, res) => {
   try {
-    const { initials, score, maxSpeed, skinName, date, playerId } = req.body;
+    const { id, initials, score, maxSpeed, skinName, date, playerId } = req.body;
 
     const numScore = Math.round(Number(score));
     if (isNaN(numScore) || numScore <= 0) {
@@ -77,7 +77,7 @@ app.post('/api/leaderboard', (req, res) => {
       .padEnd(3, 'A');
 
     const currentEntries = readLeaderboard();
-    const newEntryId = `pilot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const newEntryId = String(id || `pilot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
 
     const newEntry = {
       id: newEntryId,
@@ -89,7 +89,9 @@ app.post('/api/leaderboard', (req, res) => {
       playerId: String(playerId || '')
     };
 
-    const updated = [...currentEntries, newEntry]
+    // Filter out if exact id already existed to avoid duplicates
+    const filtered = currentEntries.filter((e) => e.id !== newEntryId);
+    const updated = [...filtered, newEntry]
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
@@ -115,8 +117,8 @@ app.post('/api/leaderboard/update-initials', (req, res) => {
       .padEnd(3, 'A');
 
     const currentEntries = readLeaderboard();
-    const updated = currentEntries.map((e) => {
-      if (e.id === entryId || (playerId && e.playerId === playerId)) {
+    let updated = currentEntries.map((e) => {
+      if ((entryId && e.id === entryId) || (playerId && e.playerId === playerId)) {
         return { ...e, initials: clean };
       }
       return e;

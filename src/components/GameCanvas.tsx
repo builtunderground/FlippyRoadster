@@ -136,7 +136,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const psiCost = isMobile ? 45 : 55;
     if (s.airPsi > 25) {
       // Controllable, calibrated upward impulse (never violently shoots car into ceiling)
-      s.vy = isMobile ? -4.3 : -4.6;
+      s.vy = isMobile ? -3.9 : -4.4;
       s.airPsi = Math.max(0, s.airPsi - psiCost);
       s.speedMph = Math.min(820, s.speedMph + (isMobile ? 15 : 12));
       soundEngine.playThrust();
@@ -184,6 +184,21 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     stateRef.current.hasTriggeredHoldRoll = false;
   }, []);
 
+  const handleThrustStartRef = useRef(handleThrustStart);
+  useEffect(() => {
+    handleThrustStartRef.current = handleThrustStart;
+  });
+
+  const handleThrustEndRef = useRef(handleThrustEnd);
+  useEffect(() => {
+    handleThrustEndRef.current = handleThrustEnd;
+  });
+
+  const performBarrelRollRef = useRef(performBarrelRoll);
+  useEffect(() => {
+    performBarrelRollRef.current = performBarrelRoll;
+  });
+
   // Track signals with refs so component re-renders NEVER cause spurious auto-thrusting
   const lastThrustSignalRef = useRef(0);
   const lastRollSignalRef = useRef(0);
@@ -192,28 +207,30 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   useEffect(() => {
     if (triggerThrustSignal && triggerThrustSignal !== lastThrustSignalRef.current) {
       lastThrustSignalRef.current = triggerThrustSignal;
-      handleThrustStart();
+      handleThrustStartRef.current();
     }
-  }, [triggerThrustSignal, handleThrustStart]);
+  }, [triggerThrustSignal]);
 
   // Listen for trigger signal from HUD ROLL button
   useEffect(() => {
     if (triggerRollSignal && triggerRollSignal !== lastRollSignalRef.current) {
       lastRollSignalRef.current = triggerRollSignal;
-      performBarrelRoll();
+      performBarrelRollRef.current();
     }
-  }, [triggerRollSignal, performBarrelRoll]);
+  }, [triggerRollSignal]);
 
-  // Listen for continuous holding thrust from HUD button
+  // Listen for continuous holding thrust from HUD button (only when boolean state changes!)
+  const prevIsThrustActiveRef = useRef<boolean>(false);
   useEffect(() => {
-    if (isThrustActive !== undefined) {
+    if (isThrustActive !== undefined && isThrustActive !== prevIsThrustActiveRef.current) {
+      prevIsThrustActiveRef.current = isThrustActive;
       if (isThrustActive) {
-        handleThrustStart();
+        handleThrustStartRef.current();
       } else {
-        handleThrustEnd();
+        handleThrustEndRef.current();
       }
     }
-  }, [isThrustActive, handleThrustStart, handleThrustEnd]);
+  }, [isThrustActive]);
 
   // Keyboard and Touch listeners (dedicated Barrel Roll keys: B, R, Shift, F, Down, S)
   useEffect(() => {
@@ -543,14 +560,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         s.scrollX += baseSpeed + speedBonus;
 
         // Sustained vertical thrust while held (pure cold-gas flight propulsion)
-        // Strictly capped to max 10 frames on mobile (14 on desktop) to prevent runaway ceiling rockets
-        const maxHoldFrames = isMobile ? 10 : 14;
+        // Strictly capped to max 6 frames on mobile (12 on desktop) to prevent runaway ceiling rockets
+        const maxHoldFrames = isMobile ? 6 : 12;
         if (s.isThrusting && s.airPsi > 25 && s.holdDuration < maxHoldFrames) {
           s.holdDuration++;
-          if (s.holdDuration > 2) {
+          if (s.holdDuration > 1) {
             // Controllable, gentle upward lift that smoothly levels off
-            const holdMaxVy = isMobile ? -4.2 : -4.8;
-            const holdAccel = isMobile ? 0.12 : 0.15;
+            const holdMaxVy = isMobile ? -3.6 : -4.3;
+            const holdAccel = isMobile ? 0.08 : 0.12;
             s.vy = Math.max(holdMaxVy, s.vy - holdAccel);
             s.airPsi = Math.max(0, s.airPsi - 3);
 
@@ -910,10 +927,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.font = isNarrow ? 'bold 52px "Pixelify Sans", sans-serif' : 'bold 72px "Pixelify Sans", sans-serif';
           ctx.fillStyle = '#FFFFFF';
           ctx.fillText('LIFTOFF!', cw / 2, ch / 2 + 18);
-
-          ctx.font = isNarrow ? 'bold 13px "Chakra Petch", sans-serif' : 'bold 16px "Chakra Petch", sans-serif';
-          ctx.fillStyle = '#E82127';
-          ctx.fillText('HOP TO 2028', cw / 2, ch / 2 + 58);
         }
 
         // Keybinding helper pill on screen during countdown
@@ -1016,6 +1029,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
+    if (typeof window !== 'undefined' && 'ontouchstart' in window && e.detail === 0) return;
     handleThrustStart();
   };
 

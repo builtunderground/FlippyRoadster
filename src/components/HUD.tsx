@@ -155,27 +155,46 @@ export const HUD: React.FC<HUDProps> = ({
         {/* Left: THRUST (Vertical Lift) Button */}
         <button
           type="button"
-          onPointerDown={(e) => {
+          onTouchStart={(e) => {
             e.preventDefault();
-            e.stopPropagation();
-            try {
-              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-            } catch {}
+            onTriggerThrustStart?.();
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            onTriggerThrustEnd?.();
+          }}
+          onTouchCancel={(e) => {
+            e.preventDefault();
+            onTriggerThrustEnd?.();
+          }}
+          onPointerDown={(e) => {
+            if (e.pointerType === 'touch') return; // Handled by touch events
+            e.preventDefault();
             onTriggerThrustStart?.();
           }}
           onPointerUp={(e) => {
+            if (e.pointerType === 'touch') return;
             e.preventDefault();
-            e.stopPropagation();
-            try {
-              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-            } catch {}
             onTriggerThrustEnd?.();
           }}
-          onPointerCancel={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          onPointerCancel={() => {
             onTriggerThrustEnd?.();
           }}
+          onPointerLeave={() => {
+            onTriggerThrustEnd?.();
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onTriggerThrustStart?.();
+          }}
+          onMouseUp={() => {
+            onTriggerThrustEnd?.();
+          }}
+          onMouseLeave={() => {
+            onTriggerThrustEnd?.();
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+          style={{ touchAction: 'none', WebkitUserSelect: 'none' }}
           className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-500 active:bg-red-700 border border-red-400 text-white shadow-[0_0_20px_rgba(232,33,39,0.4)] cursor-pointer select-none transition-all touch-manipulation min-h-[46px] sm:min-h-[52px] active:scale-95"
           title="Vertical Thrust: pushes roadster upward (Tap or Hold)"
         >

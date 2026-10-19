@@ -7,14 +7,6 @@ class SoundEngine {
   private isMusicMuted: boolean = false;
   private musicInterval: number | null = null;
   private musicStep: number = 0;
-  private quotes = [
-    "Success is not guaranteed, but it will probably work.",
-    "Prototypes are easy, production is hard.",
-    "Physics is the law, everything else is a recommendation.",
-    "Hop to 2028.",
-    "If something is important enough, you do it even if the odds are not in your favor.",
-    "Next year for sure."
-  ];
 
   constructor() {
     try {

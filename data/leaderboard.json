@@ -38,5 +38,32 @@
     "maxSpeed": 610,
     "skinName": "Midnight Cherry",
     "date": "2026-03-10"
+  },
+  {
+    "id": "pilot-1792408914916-ac67",
+    "initials": "XYZ",
+    "score": 99,
+    "maxSpeed": 500,
+    "skinName": "Ano White",
+    "date": "2026-10-19",
+    "playerId": "test"
+  },
+  {
+    "id": "pilot-1792406397176-zr3b",
+    "initials": "TAV",
+    "score": 15,
+    "maxSpeed": 509,
+    "skinName": "Ano White",
+    "date": "2026-10-19",
+    "playerId": "pilot-1792401293952-ihzevh"
+  },
+  {
+    "id": "pilot-1792401294471-pban",
+    "initials": "TAV",
+    "score": 4,
+    "maxSpeed": 520,
+    "skinName": "Ano White",
+    "date": "2026-10-19",
+    "playerId": "pilot-1792401293952-ihzevh"
   }
 ]
