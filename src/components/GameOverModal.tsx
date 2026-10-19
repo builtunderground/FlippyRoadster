@@ -11,7 +11,6 @@ interface GameOverModalProps {
   maxSpeed: number;
   barrelRolls: number;
   currentSkin: Skin;
-  quote: string;
   leaderboardRank?: number;
   onRestart: () => void;
   onOpenGarage?: () => void;
@@ -23,7 +22,6 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   score,
   highScore,
   isNewHigh,
-  quote,
   leaderboardRank,
   onRestart,
   onOpenLeaderboard,
@@ -42,11 +40,6 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           <h2 className="font-oxanium font-bold text-2xl sm:text-3xl tracking-wider uppercase drop-shadow-[0_0_10px_rgba(232,33,39,0.5)]">
             MISSION ABORT
           </h2>
-        </div>
-
-        {/* Streamlined Starbase Quote Briefing */}
-        <div className="w-full bg-neutral-950/80 p-2.5 my-1.5 text-xs font-mono text-neutral-300 italic text-left border-l-2 border-red-500">
-          &ldquo;{quote}&rdquo;
         </div>
 
         {/* Clean Telemetry Distance & Leaderboard Standing */}

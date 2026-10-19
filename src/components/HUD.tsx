@@ -158,11 +158,17 @@ export const HUD: React.FC<HUDProps> = ({
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            try {
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            } catch {}
             onTriggerThrustStart?.();
           }}
           onPointerUp={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            try {
+              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+            } catch {}
             onTriggerThrustEnd?.();
           }}
           onPointerCancel={(e) => {
@@ -171,6 +177,17 @@ export const HUD: React.FC<HUDProps> = ({
             onTriggerThrustEnd?.();
           }}
           onPointerLeave={() => {
+            onTriggerThrustEnd?.();
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            onTriggerThrustStart?.();
+          }}
+          onTouchEnd={(e) => {
+            e.stopPropagation();
+            onTriggerThrustEnd?.();
+          }}
+          onTouchCancel={() => {
             onTriggerThrustEnd?.();
           }}
           className="flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-red-600 hover:bg-red-500 active:bg-red-700 border border-red-400 text-white shadow-[0_0_20px_rgba(232,33,39,0.4)] cursor-pointer select-none transition-all touch-manipulation min-h-[46px] sm:min-h-[52px] active:scale-95"

@@ -336,22 +336,9 @@ class SoundEngine {
     noise.stop(now + 0.21);
   }
 
-  // Deadpan voice announcement on Game Over
-  public speakGameOverQuote(customQuote?: string) {
-    if (this.isMuted) return;
-    if ('speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-        const text = customQuote || this.quotes[Math.floor(Math.random() * this.quotes.length)];
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.92;
-        utterance.pitch = 0.85; // slightly deeper deadpan tone
-        utterance.volume = 0.8;
-        window.speechSynthesis.speak(utterance);
-      } catch {
-        // Silently continue if voice blocked by browser policy
-      }
-    }
+  // Game over voice announcement disabled per user request
+  public speakGameOverQuote(_customQuote?: string) {
+    // Disabled
   }
 
   private customAudio: HTMLAudioElement | null = null;

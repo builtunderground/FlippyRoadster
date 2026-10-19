@@ -124,6 +124,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if ((gameState !== 'PLAYING' && gameState !== 'COUNTDOWN') || isPaused) return;
 
     s.isThrusting = true;
+    s.holdDuration = 0; // Reset hold frames on every tap to prevent runaway acceleration
 
     // During COUNTDOWN, if tapped, immediately launch so restart is instantaneous!
     if (gameState === 'COUNTDOWN') {
@@ -137,11 +138,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || ('ontouchstart' in window));
 
     // Check if sufficient PSI (forgiving PSI cost)
-    const psiCost = isMobile ? 55 : 65;
-    if (s.airPsi > 35) {
-      s.vy = isMobile ? -5.9 : -4.85; // Calibrated, precise upward impulse on desktop (down from -6.4)
+    const psiCost = isMobile ? 45 : 55;
+    if (s.airPsi > 25) {
+      // Controllable, calibrated upward impulse (never violently shoots car into ceiling)
+      s.vy = isMobile ? -4.3 : -4.6;
       s.airPsi = Math.max(0, s.airPsi - psiCost);
-      s.speedMph = Math.min(820, s.speedMph + (isMobile ? 22 : 12));
+      s.speedMph = Math.min(820, s.speedMph + (isMobile ? 15 : 12));
       soundEngine.playThrust();
 
       // Generate rear exhaust particles
@@ -239,12 +241,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     };
 
+    const onGlobalRelease = () => {
+      handleThrustEnd();
+    };
+
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('pointerup', onGlobalRelease);
+    window.addEventListener('pointercancel', onGlobalRelease);
+    window.addEventListener('touchend', onGlobalRelease);
+    window.addEventListener('touchcancel', onGlobalRelease);
+    window.addEventListener('mouseup', onGlobalRelease);
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('pointerup', onGlobalRelease);
+      window.removeEventListener('pointercancel', onGlobalRelease);
+      window.removeEventListener('touchend', onGlobalRelease);
+      window.removeEventListener('touchcancel', onGlobalRelease);
+      window.removeEventListener('mouseup', onGlobalRelease);
     };
   }, [handleThrustStart, handleThrustEnd, performBarrelRoll]);
 
@@ -513,15 +529,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const speedBonus = Math.min(2.5, s.score * 0.01);
         s.scrollX += baseSpeed + speedBonus;
 
-        // Sustained vertical thrust while held (pure cold-gas flight propulsion, NOT a barrel roll)
-        if (s.isThrusting && s.airPsi > 35) {
+        // Sustained vertical thrust while held (pure cold-gas flight propulsion)
+        // Strictly capped to max 10 frames on mobile (14 on desktop) to prevent runaway ceiling rockets
+        const maxHoldFrames = isMobile ? 10 : 14;
+        if (s.isThrusting && s.airPsi > 25 && s.holdDuration < maxHoldFrames) {
           s.holdDuration++;
           if (s.holdDuration > 2) {
-            // Apply continuous smooth, controllable upward lift (gentle on desktop)
-            const holdMaxVy = isMobile ? -6.8 : -5.4;
-            const holdAccel = isMobile ? 0.32 : 0.18;
+            // Controllable, gentle upward lift that smoothly levels off
+            const holdMaxVy = isMobile ? -4.2 : -4.8;
+            const holdAccel = isMobile ? 0.12 : 0.15;
             s.vy = Math.max(holdMaxVy, s.vy - holdAccel);
-            s.airPsi = Math.max(0, s.airPsi - 5);
+            s.airPsi = Math.max(0, s.airPsi - 3);
 
             // Continuously emit exhaust plume particles
             if (s.holdDuration % 3 === 0) {
@@ -539,6 +557,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               });
             }
           }
+        } else if (s.holdDuration >= maxHoldFrames) {
+          // Automatic cutoff: stops upward acceleration so the roadster gracefully arcs down under gravity
+          s.isThrusting = false;
         }
 
         // Barrel Roll Animation (Dedicated 360-degree aerodynamic combat roll)

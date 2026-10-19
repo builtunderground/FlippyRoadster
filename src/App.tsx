@@ -50,15 +50,13 @@ export default function App() {
     maxSpeed: number;
     rolls: number;
     isNewHigh: boolean;
-    quote: string;
     leaderboardRank?: number;
     entryId?: string;
   }>({
     score: 0,
     maxSpeed: 250,
     rolls: 0,
-    isNewHigh: false,
-    quote: 'Success is not guaranteed, but it will probably work.'
+    isNewHigh: false
   });
 
   // Career stats state
@@ -159,17 +157,7 @@ export default function App() {
     (finalScore: number, maxRunSpeed: number, rollCount: number) => {
       setGameState('GAME_OVER');
       setIsPaused(false);
-
-      const quotes = [
-        "Success is not guaranteed, but it will probably work.",
-        "Prototypes are easy, production is hard.",
-        "Physics is the law, everything else is a recommendation.",
-        "Hop to 2028.",
-        "If something is important enough, you do it anyway.",
-        "Next year for sure."
-      ];
-      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      soundEngine.speakGameOverQuote(randomQuote);
+      setIsThrustActive(false);
 
       setStats((prev) => {
         const isNewHigh = finalScore > prev.highScore;
@@ -188,8 +176,7 @@ export default function App() {
           score: finalScore,
           maxSpeed: maxRunSpeed,
           rolls: rollCount,
-          isNewHigh,
-          quote: randomQuote
+          isNewHigh
         });
 
         // Automatically record to shared arcade leaderboard
@@ -297,6 +284,25 @@ export default function App() {
 
   const handleTriggerThrustEnd = useCallback(() => {
     setIsThrustActive(false);
+  }, []);
+
+  // Global safety release: guarantee thrust is released when any touch/pointer lifts anywhere
+  useEffect(() => {
+    const handleGlobalRelease = () => {
+      setIsThrustActive(false);
+    };
+    window.addEventListener('pointerup', handleGlobalRelease);
+    window.addEventListener('pointercancel', handleGlobalRelease);
+    window.addEventListener('touchend', handleGlobalRelease);
+    window.addEventListener('touchcancel', handleGlobalRelease);
+    window.addEventListener('mouseup', handleGlobalRelease);
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalRelease);
+      window.removeEventListener('pointercancel', handleGlobalRelease);
+      window.removeEventListener('touchend', handleGlobalRelease);
+      window.removeEventListener('touchcancel', handleGlobalRelease);
+      window.removeEventListener('mouseup', handleGlobalRelease);
+    };
   }, []);
 
   return (
@@ -451,7 +457,6 @@ export default function App() {
           maxSpeed={lastRunStats.maxSpeed}
           barrelRolls={lastRunStats.rolls}
           currentSkin={currentSkin}
-          quote={lastRunStats.quote}
           leaderboardRank={lastRunStats.leaderboardRank}
           onRestart={handleStartRun}
           onOpenLeaderboard={() => setShowLeaderboard(true)}
