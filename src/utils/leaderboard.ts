@@ -1,4 +1,13 @@
 import { LeaderboardEntry } from '../types/game';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  onSnapshot
+} from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, ensureAuthUser } from './firebase';
 
 const LEADERBOARD_STORAGE_KEY = 'flippy_roadster_arcade_hall_of_fame_v5';
 const DEFAULT_INITIALS_KEY = 'flippy_roadster_last_pilot_initials';
@@ -6,11 +15,11 @@ const PLAYER_ID_KEY = 'flippy_roadster_persistent_player_id';
 
 // Default initial high scores (Arcade classics)
 export const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
-  { id: 'hof-1', initials: 'TAV', score: 2840, maxSpeed: 820, skinName: 'Starman Edition', date: '2026-03-24' },
-  { id: 'hof-2', initials: 'ELN', score: 2420, maxSpeed: 780, skinName: 'Tesla Roadster', date: '2026-03-14' },
-  { id: 'hof-3', initials: 'SPX', score: 1980, maxSpeed: 740, skinName: 'SpaceX Starhopper', date: '2026-03-18' },
-  { id: 'hof-4', initials: 'CYB', score: 1650, maxSpeed: 690, skinName: 'Cyber Roadster', date: '2026-03-21' },
-  { id: 'hof-5', initials: 'RSX', score: 1240, maxSpeed: 610, skinName: 'Midnight Cherry', date: '2026-03-10' }
+  { id: 'entry-1', initials: 'TAV', score: 2840, maxSpeed: 820, skinName: 'Starman Edition', date: '2026-03-24' },
+  { id: 'entry-2', initials: 'ELN', score: 2420, maxSpeed: 780, skinName: 'Tesla Roadster', date: '2026-03-14' },
+  { id: 'entry-3', initials: 'SPX', score: 1980, maxSpeed: 740, skinName: 'SpaceX Starhopper', date: '2026-03-18' },
+  { id: 'entry-4', initials: 'CYB', score: 1650, maxSpeed: 690, skinName: 'Cyber Roadster', date: '2026-03-21' },
+  { id: 'entry-5', initials: 'RSX', score: 1240, maxSpeed: 610, skinName: 'Midnight Cherry', date: '2026-03-10' }
 ];
 
 // Persistent Player UUID for identifying own runs
@@ -97,9 +106,37 @@ function notifyListeners(entries: LeaderboardEntry[]) {
 }
 
 /**
- * Fetch latest shared scores from the server /api/leaderboard
+ * Fetch latest shared scores from Firestore (global multiplayer database)
  */
 export async function syncSharedLeaderboard(): Promise<LeaderboardEntry[]> {
+  try {
+    const snap = await getDocs(collection(db, 'leaderboard_entries'));
+    const myPid = getOrCreatePlayerId();
+    const liveEntries: LeaderboardEntry[] = [];
+    snap.forEach((docSnap) => {
+      const d = docSnap.data();
+      liveEntries.push({
+        id: docSnap.id,
+        initials: String(d.initials || 'AAA').toUpperCase().slice(0, 3),
+        score: Number(d.score) || 0,
+        maxSpeed: Number(d.maxSpeed) || 0,
+        skinName: String(d.skinName || 'Tesla Roadster'),
+        date: String(d.date || new Date().toISOString().slice(0, 10)),
+        isPlayer: Boolean((d.userId && d.userId === myPid) || (d.playerId && d.playerId === myPid))
+      });
+    });
+
+    if (liveEntries.length > 0) {
+      const sorted = liveEntries.sort((a, b) => b.score - a.score).slice(0, 10);
+      saveLeaderboard(sorted);
+      notifyListeners(sorted);
+      return sorted;
+    }
+  } catch (err) {
+    console.warn('Firestore fetch note, falling back to REST/local:', err);
+  }
+
+  // Fallback to Express backend if Firestore is offline
   try {
     const res = await fetch('/api/leaderboard');
     if (res.ok) {
@@ -123,9 +160,8 @@ export async function syncSharedLeaderboard(): Promise<LeaderboardEntry[]> {
         }
       }
     }
-  } catch (err) {
-    // Silent network fallback
-  }
+  } catch {}
+
   return cachedLeaderboard;
 }
 
@@ -140,17 +176,54 @@ export function subscribeToSharedLeaderboard(
   // Send current cached value immediately
   onUpdate(cachedLeaderboard);
 
-  // Sync from server right away
-  syncSharedLeaderboard().catch(() => {});
+  // Ensure background anonymous auth
+  ensureAuthUser().catch(() => {});
 
-  // Poll server every 10 seconds for shared multiplayer leaderboard updates
-  const timer = setInterval(() => {
-    syncSharedLeaderboard().catch(() => {});
-  }, 10000);
+  // Real-time Firestore snapshot listener across all players globally
+  let unsubscribeFirestore: (() => void) | null = null;
+  try {
+    const colRef = collection(db, 'leaderboard_entries');
+    unsubscribeFirestore = onSnapshot(
+      colRef,
+      (snapshot) => {
+        const myPid = getOrCreatePlayerId();
+        const liveEntries: LeaderboardEntry[] = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          liveEntries.push({
+            id: docSnap.id,
+            initials: String(d.initials || 'AAA').toUpperCase().slice(0, 3),
+            score: Number(d.score) || 0,
+            maxSpeed: Number(d.maxSpeed) || 0,
+            skinName: String(d.skinName || 'Tesla Roadster'),
+            date: String(d.date || new Date().toISOString().slice(0, 10)),
+            isPlayer: Boolean((d.userId && d.userId === myPid) || (d.playerId && d.playerId === myPid))
+          });
+        });
+
+        if (liveEntries.length > 0) {
+          const sorted = liveEntries.sort((a, b) => b.score - a.score).slice(0, 10);
+          cachedLeaderboard = sorted;
+          saveLeaderboard(sorted);
+          onUpdate(sorted);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'leaderboard_entries');
+      }
+    );
+  } catch (err) {
+    console.warn('Firestore real-time subscription error:', err);
+  }
+
+  // Trigger sync right away
+  syncSharedLeaderboard().catch(() => {});
 
   return () => {
     updateListeners.delete(onUpdate);
-    clearInterval(timer);
+    if (unsubscribeFirestore) {
+      unsubscribeFirestore();
+    }
   };
 }
 
@@ -193,7 +266,26 @@ export async function addLeaderboardEntry(
 
   const newRank = updatedLocal.findIndex((e) => e.id === entryId) + 1;
 
-  // Sync to shared backend server
+  // Save globally to Firestore (shared across all players worldwide in real-time)
+  try {
+    await ensureAuthUser();
+    const docRef = doc(db, 'leaderboard_entries', entryId);
+    await setDoc(docRef, {
+      id: entryId,
+      initials: cleanInitials,
+      score: Math.round(score),
+      maxSpeed: Math.round(maxSpeed),
+      skinName: (skinName || 'Tesla Roadster').slice(0, 50),
+      date: newEntry.date,
+      userId: myPlayerId,
+      playerId: myPlayerId,
+      createdAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn('Firestore setDoc error notice:', err);
+  }
+
+  // Also sync to Express backend as fallback
   try {
     const res = await fetch('/api/leaderboard', {
       method: 'POST',
@@ -233,7 +325,7 @@ export async function addLeaderboardEntry(
 }
 
 /**
- * Update callsign / initials on recorded entries and sync
+ * Update callsign / initials on recorded entries and sync globally
  */
 export async function updateLeaderboardEntryInitials(
   newInitials: string,
@@ -259,6 +351,19 @@ export async function updateLeaderboardEntryInitials(
   saveLeaderboard(cachedLeaderboard);
   notifyListeners(cachedLeaderboard);
 
+  // Update in Firestore globally
+  try {
+    await ensureAuthUser();
+    if (entryId) {
+      await updateDoc(doc(db, 'leaderboard_entries', entryId), {
+        initials: clean
+      });
+    }
+  } catch (err) {
+    console.warn('Firestore updateDoc error notice:', err);
+  }
+
+  // Also sync to Express backend
   try {
     const res = await fetch('/api/leaderboard/update-initials', {
       method: 'POST',

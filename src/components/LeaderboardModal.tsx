@@ -221,16 +221,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           })}
         </div>
 
-        {/* Footer Actions */}
-        <div className="pt-2.5 mt-2 border-t border-neutral-900 flex items-center justify-end text-xs">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-oxanium font-bold text-xs border border-neutral-700 cursor-pointer transition-colors"
-          >
-            DISMISS
-          </button>
-        </div>
-
         {/* Clean Shantiisan Official Copyright with TAV Logo */}
         <div className="mt-2.5 pt-2 border-t border-neutral-900/80">
           <ShantiisanFooter />
