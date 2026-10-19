@@ -13,6 +13,7 @@ interface GameCanvasProps {
   isPaused: boolean;
   triggerRollSignal?: number; // external trigger from HUD button
   triggerThrustSignal?: number; // external trigger from HUD button
+  isThrustActive?: boolean; // continuous hold state from HUD button
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -24,7 +25,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   onScoreUpdate,
   isPaused,
   triggerRollSignal,
-  triggerThrustSignal
+  triggerThrustSignal,
+  isThrustActive
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -189,12 +191,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   useEffect(() => {
     if (triggerThrustSignal && triggerThrustSignal > 0) {
       handleThrustStart();
-      const timer = setTimeout(() => {
-        handleThrustEnd();
-      }, 120);
-      return () => clearTimeout(timer);
     }
-  }, [triggerThrustSignal, handleThrustStart, handleThrustEnd]);
+  }, [triggerThrustSignal, handleThrustStart]);
+
+  // Listen for continuous holding thrust from HUD button
+  useEffect(() => {
+    if (isThrustActive !== undefined) {
+      if (isThrustActive) {
+        handleThrustStart();
+      } else {
+        handleThrustEnd();
+      }
+    }
+  }, [isThrustActive, handleThrustStart, handleThrustEnd]);
 
   // Keyboard and Touch listeners (dedicated Barrel Roll keys: B, R, Shift, F, Down, S)
   useEffect(() => {
@@ -980,6 +989,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     handleThrustEnd();
   };
 
+  const handleTouchCancel = () => {
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    handleThrustEnd();
+  };
+
   return (
     <div
       ref={containerRef}
@@ -988,6 +1003,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       onMouseUp={handleMouseUp}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
     >
       <canvas
         ref={canvasRef}

@@ -35,6 +35,7 @@ export default function App() {
   const [currentPhase, setCurrentPhase] = useState<GamePhase>('WACO');
   const [triggerRollSignal, setTriggerRollSignal] = useState(0);
   const [triggerThrustSignal, setTriggerThrustSignal] = useState(0);
+  const [isThrustActive, setIsThrustActive] = useState(false);
 
   // Modals
   const [showGarage, setShowGarage] = useState(false);
@@ -261,6 +262,15 @@ export default function App() {
     }
   };
 
+  const handleTriggerThrustStart = useCallback(() => {
+    setIsThrustActive(true);
+    setTriggerThrustSignal((s) => s + 1);
+  }, []);
+
+  const handleTriggerThrustEnd = useCallback(() => {
+    setIsThrustActive(false);
+  }, []);
+
   return (
     <div className="fixed inset-0 w-full h-full min-h-[100dvh] max-h-[100dvh] bg-black overflow-hidden flex flex-col items-center justify-center font-hud text-white select-none touch-none">
       {/* Retro CRT Scanlines Overlay */}
@@ -279,6 +289,7 @@ export default function App() {
         isPaused={isPaused}
         triggerRollSignal={triggerRollSignal}
         triggerThrustSignal={triggerThrustSignal}
+        isThrustActive={isThrustActive}
       />
 
       {/* Top HUD (during play and game over) */}
@@ -298,7 +309,8 @@ export default function App() {
           onToggleMute={handleToggleMute}
           onToggleMusic={handleToggleMusic}
           onTriggerRoll={handleTriggerRoll}
-          onTriggerThrust={() => setTriggerThrustSignal((s) => s + 1)}
+          onTriggerThrustStart={handleTriggerThrustStart}
+          onTriggerThrustEnd={handleTriggerThrustEnd}
         />
       )}
 

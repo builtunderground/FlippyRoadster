@@ -17,7 +17,8 @@ interface HUDProps {
   onToggleMute: () => void;
   onToggleMusic: () => void;
   onTriggerRoll: () => void;
-  onTriggerThrust?: () => void;
+  onTriggerThrustStart?: () => void;
+  onTriggerThrustEnd?: () => void;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -34,7 +35,8 @@ export const HUD: React.FC<HUDProps> = ({
   onToggleMute,
   onToggleMusic,
   onTriggerRoll,
-  onTriggerThrust
+  onTriggerThrustStart,
+  onTriggerThrustEnd
 }) => {
   const psiPercent = Math.max(0, Math.min(100, (airPsi / maxPsi) * 100));
   const isLowPsi = airPsi < 2000;
@@ -167,15 +169,26 @@ export const HUD: React.FC<HUDProps> = ({
       <div className="w-full max-w-5xl mx-auto flex items-end justify-between pointer-events-auto pb-1 sm:pb-2 gap-2 z-30">
         {/* Left: Tactical Cold-Gas Vertical LIFT / THRUST Button */}
         <button
-          onClick={(e) => {
+          type="button"
+          onPointerDown={(e) => {
+            e.preventDefault();
             e.stopPropagation();
-            onTriggerThrust?.();
+            onTriggerThrustStart?.();
           }}
-          onTouchStart={(e) => {
+          onPointerUp={(e) => {
+            e.preventDefault();
             e.stopPropagation();
-            onTriggerThrust?.();
+            onTriggerThrustEnd?.();
           }}
-          className="flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-5 sm:py-3 bg-red-600 hover:bg-red-500 active:bg-red-700 border border-red-400 text-white shadow-[0_0_22px_rgba(232,33,39,0.5)] cursor-pointer select-none transition-all touch-manipulation min-h-[46px] sm:min-h-[52px]"
+          onPointerCancel={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onTriggerThrustEnd?.();
+          }}
+          onPointerLeave={() => {
+            onTriggerThrustEnd?.();
+          }}
+          className="flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-5 sm:py-3 bg-red-600 hover:bg-red-500 active:bg-red-700 border border-red-400 text-white shadow-[0_0_22px_rgba(232,33,39,0.5)] cursor-pointer select-none transition-all touch-manipulation min-h-[48px] sm:min-h-[54px] active:scale-95"
           title="Cold-Gas Vertical Lift: pushes roadster upward (Tap or Hold)"
         >
           <div className="w-2.5 h-2.5 bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] animate-ping" />
@@ -200,16 +213,16 @@ export const HUD: React.FC<HUDProps> = ({
 
         {/* Right: Sharp Arcade BARREL ROLL (360° Acrobatic Spin & Deflector Shield) Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onTriggerRoll();
-          }}
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            onTriggerRoll();
-          }}
+          type="button"
           disabled={!canRoll}
-          className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-3 py-2.5 sm:px-5 sm:py-3 border transition-all shadow-2xl cursor-pointer select-none touch-manipulation min-h-[46px] sm:min-h-[52px] ${
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (canRoll) {
+              onTriggerRoll();
+            }
+          }}
+          className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-3 py-2.5 sm:px-5 sm:py-3 border transition-all shadow-2xl cursor-pointer select-none touch-manipulation min-h-[48px] sm:min-h-[54px] active:scale-95 ${
             canRoll
               ? 'bg-neutral-950 hover:bg-neutral-900 active:bg-neutral-800 text-white border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.4)]'
               : 'bg-black/80 text-neutral-600 border-neutral-900 opacity-50 cursor-not-allowed'
