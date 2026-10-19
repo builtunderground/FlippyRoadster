@@ -111,29 +111,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   }, [gameState]);
 
-  // Listen for trigger signal from HUD ROLL button
-  useEffect(() => {
-    if (triggerRollSignal && triggerRollSignal > 0) {
-      performBarrelRoll();
-    }
-  }, [triggerRollSignal, performBarrelRoll]);
-
   // Thrust action
   const handleThrustStart = useCallback(() => {
     const s = stateRef.current;
     if ((gameState !== 'PLAYING' && gameState !== 'COUNTDOWN') || isPaused) return;
 
-    s.isThrusting = true;
-    s.holdDuration = 0; // Reset hold frames on every tap to prevent runaway acceleration
-
-    // During COUNTDOWN, if tapped, immediately launch so restart is instantaneous!
+    // During COUNTDOWN, if tapped, immediately launch cleanly into playing WITHOUT stuck thrust
     if (gameState === 'COUNTDOWN') {
+      s.isThrusting = false;
+      s.holdDuration = 0;
       soundEngine.playThrust();
       if (onCountdownComplete) {
         onCountdownComplete();
       }
       return;
     }
+
+    s.isThrusting = true;
+    s.holdDuration = 0; // Reset hold frames on every fresh tap
 
     const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || ('ontouchstart' in window));
 
@@ -189,12 +184,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     stateRef.current.hasTriggeredHoldRoll = false;
   }, []);
 
+  // Track signals with refs so component re-renders NEVER cause spurious auto-thrusting
+  const lastThrustSignalRef = useRef(0);
+  const lastRollSignalRef = useRef(0);
+
   // Listen for trigger signal from HUD THRUST button
   useEffect(() => {
-    if (triggerThrustSignal && triggerThrustSignal > 0) {
+    if (triggerThrustSignal && triggerThrustSignal !== lastThrustSignalRef.current) {
+      lastThrustSignalRef.current = triggerThrustSignal;
       handleThrustStart();
     }
   }, [triggerThrustSignal, handleThrustStart]);
+
+  // Listen for trigger signal from HUD ROLL button
+  useEffect(() => {
+    if (triggerRollSignal && triggerRollSignal !== lastRollSignalRef.current) {
+      lastRollSignalRef.current = triggerRollSignal;
+      performBarrelRoll();
+    }
+  }, [triggerRollSignal, performBarrelRoll]);
 
   // Listen for continuous holding thrust from HUD button
   useEffect(() => {
@@ -333,6 +341,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Reset game state when starting Countdown or Playing
     if (gameState === 'COUNTDOWN') {
       const s = stateRef.current;
+      s.isThrusting = false;
+      s.holdDuration = 0;
+      s.hasTriggeredHoldRoll = false;
+      lastThrustSignalRef.current = triggerThrustSignal || 0;
+      lastRollSignalRef.current = triggerRollSignal || 0;
       s.x = Math.max(90, Math.min(180, Math.round(canvas.width * 0.2)));
       s.y = canvas.height / 2;
       s.vy = 0;
@@ -964,6 +977,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     e.preventDefault();
 
     if (gameState === 'COUNTDOWN') {
+      stateRef.current.isThrusting = false;
+      stateRef.current.holdDuration = 0;
       soundEngine.playThrust();
       if (onCountdownComplete) {
         onCountdownComplete();
@@ -977,12 +992,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       touchStartYRef.current = touch.clientY;
     }
 
-    // Tapping the screen ALWAYS thrusts (vertical lift)
+    // Tapping the screen gives a calibrated, responsive upward hop
     handleThrustStart();
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return;
     e.preventDefault();
 
     // Check for horizontal swipe right to trigger acrobatic barrel roll
@@ -1005,8 +1019,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     handleThrustStart();
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return;
+  const handleMouseUp = () => {
     handleThrustEnd();
   };
 

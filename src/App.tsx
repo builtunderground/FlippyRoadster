@@ -126,6 +126,9 @@ export default function App() {
     setSpeedMph(250);
     setCurrentPhase('WACO');
     setGameState('COUNTDOWN');
+    setTriggerThrustSignal(0);
+    setIsThrustActive(false);
+    setTriggerRollSignal(0);
 
     if (!isMusicMuted && !isMuted) {
       soundEngine.startMusic();
