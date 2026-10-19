@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trophy, Check, Edit3, RotateCcw } from 'lucide-react';
+import { X, Trophy, Check, Edit3 } from 'lucide-react';
 import { GameLogo } from './ui/GameLogo';
 import { GameStats, LeaderboardEntry } from '../types/game';
 import {
   getLeaderboard,
   getLastPilotInitials,
   updateLeaderboardEntryInitials,
-  resetLeaderboard,
   subscribeToSharedLeaderboard
 } from '../utils/leaderboard';
 import { ShantiisanFooter } from './ui/ShantiisanFooter';
@@ -52,13 +51,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     const clean = (initials || 'TAV').toUpperCase().slice(0, 3);
     const updated = await updateLeaderboardEntryInitials(clean, activeEntryId);
     setEntries(updated);
-  };
-
-  const handleResetScores = () => {
-    if (window.confirm('Reset arcade leaderboard to default factory records?')) {
-      const reset = resetLeaderboard();
-      setEntries(reset);
-    }
   };
 
   // Find player rank in current standings
@@ -230,19 +222,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-2.5 mt-2 border-t border-neutral-900 flex items-center justify-between text-xs">
-          <button
-            onClick={handleResetScores}
-            className="flex items-center gap-1 text-[9px] font-mono text-neutral-500 hover:text-red-400 transition-colors cursor-pointer"
-            title="Reset Leaderboard"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>RESET SCORES</span>
-          </button>
-
+        <div className="pt-2.5 mt-2 border-t border-neutral-900 flex items-center justify-end text-xs">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-oxanium font-bold text-xs border border-neutral-700 cursor-pointer transition-colors"
+            className="px-6 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-oxanium font-bold text-xs border border-neutral-700 cursor-pointer transition-colors"
           >
             DISMISS
           </button>
