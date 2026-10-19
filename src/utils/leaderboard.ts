@@ -1,12 +1,35 @@
-import { collection, query, orderBy, limit, onSnapshot, setDoc, doc, getDocs } from 'firebase/firestore';
 import { LeaderboardEntry } from '../types/game';
-import { db, auth, ensureAuthUser } from './firebase';
 
-const LEADERBOARD_STORAGE_KEY = 'flippy_roadster_arcade_hall_of_fame_v4';
+const LEADERBOARD_STORAGE_KEY = 'flippy_roadster_arcade_hall_of_fame_v5';
 const DEFAULT_INITIALS_KEY = 'flippy_roadster_last_pilot_initials';
+const PLAYER_ID_KEY = 'flippy_roadster_persistent_player_id';
+
+// Default initial high scores (Arcade classics)
+export const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
+  { id: 'hof-1', initials: 'TAV', score: 2840, maxSpeed: 820, skinName: 'Starman Edition', date: '2026-03-24' },
+  { id: 'hof-2', initials: 'ELN', score: 2420, maxSpeed: 780, skinName: 'Tesla Roadster', date: '2026-03-14' },
+  { id: 'hof-3', initials: 'SPX', score: 1980, maxSpeed: 740, skinName: 'SpaceX Starhopper', date: '2026-03-18' },
+  { id: 'hof-4', initials: 'CYB', score: 1650, maxSpeed: 690, skinName: 'Cyber Roadster', date: '2026-03-21' },
+  { id: 'hof-5', initials: 'RSX', score: 1240, maxSpeed: 610, skinName: 'Midnight Cherry', date: '2026-03-10' }
+];
+
+// Persistent Player UUID for identifying own runs
+export function getOrCreatePlayerId(): string {
+  if (typeof window === 'undefined') return 'pilot-local';
+  try {
+    let pid = localStorage.getItem(PLAYER_ID_KEY);
+    if (!pid) {
+      pid = `pilot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      localStorage.setItem(PLAYER_ID_KEY, pid);
+    }
+    return pid;
+  } catch {
+    return 'pilot-fallback';
+  }
+}
 
 // In-memory cache of the shared leaderboard
-let cachedLeaderboard: LeaderboardEntry[] = [];
+let cachedLeaderboard: LeaderboardEntry[] = [...DEFAULT_LEADERBOARD];
 
 // Initialize memory cache from localStorage if available
 if (typeof window !== 'undefined') {
@@ -14,9 +37,9 @@ if (typeof window !== 'undefined') {
     const raw = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         cachedLeaderboard = parsed
-          .filter((e) => e && typeof e.score === 'number' && !String(e.id || '').startsWith('hof-'))
+          .filter((e) => e && typeof e.score === 'number')
           .sort((a, b) => b.score - a.score)
           .slice(0, 10);
       }
@@ -25,14 +48,19 @@ if (typeof window !== 'undefined') {
 }
 
 export function getLastPilotInitials(): string {
-  if (typeof window === 'undefined') return 'AAA';
-  return (localStorage.getItem(DEFAULT_INITIALS_KEY) || 'AAA').toUpperCase().slice(0, 3);
+  if (typeof window === 'undefined') return 'TAV';
+  try {
+    return (localStorage.getItem(DEFAULT_INITIALS_KEY) || 'TAV').toUpperCase().slice(0, 3);
+  } catch {
+    return 'TAV';
+  }
 }
 
 export function saveLastPilotInitials(initials: string): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(DEFAULT_INITIALS_KEY, initials.toUpperCase().slice(0, 3));
+    const clean = (initials || 'TAV').toUpperCase().slice(0, 3);
+    localStorage.setItem(DEFAULT_INITIALS_KEY, clean);
   } catch {}
 }
 
@@ -51,65 +79,83 @@ export function saveLeaderboard(entries: LeaderboardEntry[]): void {
 export function qualifiesForLeaderboard(score: number): boolean {
   if (score <= 0) return false;
   if (cachedLeaderboard.length < 10) return true;
-  return score > cachedLeaderboard[cachedLeaderboard.length - 1].score;
+  return score > (cachedLeaderboard[cachedLeaderboard.length - 1]?.score || 0);
+}
+
+// Listeners for live updates
+const updateListeners = new Set<(entries: LeaderboardEntry[]) => void>();
+
+function notifyListeners(entries: LeaderboardEntry[]) {
+  saveLeaderboard(entries);
+  updateListeners.forEach((fn) => {
+    try {
+      fn(entries);
+    } catch (e) {
+      console.error('Error notifying leaderboard listener:', e);
+    }
+  });
 }
 
 /**
- * Subscribe to the shared global Firestore leaderboard in real-time.
- * Automatically synchronizes whenever ANY player in the world registers a new score!
+ * Fetch latest shared scores from the server /api/leaderboard
+ */
+export async function syncSharedLeaderboard(): Promise<LeaderboardEntry[]> {
+  try {
+    const res = await fetch('/api/leaderboard');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.entries)) {
+        const myPid = getOrCreatePlayerId();
+        const mapped: LeaderboardEntry[] = data.entries.map((e: any) => ({
+          id: String(e.id || `entry-${Math.random()}`),
+          initials: String(e.initials || 'AAA').toUpperCase().slice(0, 3),
+          score: Number(e.score) || 0,
+          maxSpeed: Number(e.maxSpeed) || 0,
+          skinName: String(e.skinName || 'Tesla Roadster'),
+          date: String(e.date || new Date().toISOString().slice(0, 10)),
+          isPlayer: Boolean(e.playerId && e.playerId === myPid)
+        }));
+
+        const sorted = mapped.sort((a, b) => b.score - a.score).slice(0, 10);
+        if (sorted.length > 0) {
+          notifyListeners(sorted);
+          return sorted;
+        }
+      }
+    }
+  } catch (err) {
+    // Silent network fallback
+  }
+  return cachedLeaderboard;
+}
+
+/**
+ * Subscribe to shared leaderboard with real-time updates and polling
  */
 export function subscribeToSharedLeaderboard(
   onUpdate: (entries: LeaderboardEntry[]) => void
 ): () => void {
-  const currentUid = auth.currentUser?.uid;
+  updateListeners.add(onUpdate);
 
-  try {
-    const q = query(collection(db, 'leaderboard_entries'), orderBy('score', 'desc'), limit(10));
+  // Send current cached value immediately
+  onUpdate(cachedLeaderboard);
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const liveEntries: LeaderboardEntry[] = [];
-        snapshot.forEach((d) => {
-          const data = d.data();
-          liveEntries.push({
-            id: d.id,
-            initials: (data.initials || 'AAA').toUpperCase().slice(0, 3),
-            score: Number(data.score) || 0,
-            maxSpeed: Number(data.maxSpeed) || 0,
-            skinName: String(data.skinName || 'Tesla Roadster'),
-            date: String(data.date || new Date().toISOString().slice(0, 10)),
-            userId: data.userId,
-            isPlayer: Boolean(currentUid && data.userId === currentUid)
-          });
-        });
+  // Sync from server right away
+  syncSharedLeaderboard().catch(() => {});
 
-        // Filter and sort
-        const sorted = liveEntries
-          .filter((e) => !String(e.id || '').startsWith('hof-'))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 10);
+  // Poll server every 10 seconds for shared multiplayer leaderboard updates
+  const timer = setInterval(() => {
+    syncSharedLeaderboard().catch(() => {});
+  }, 10000);
 
-        saveLeaderboard(sorted);
-        onUpdate(sorted);
-      },
-      (err) => {
-        console.warn('Realtime leaderboard subscription fallback:', err);
-        // Fall back to current cached entries
-        onUpdate(cachedLeaderboard);
-      }
-    );
-
-    return unsubscribe;
-  } catch (err) {
-    console.warn('Firestore subscription init error:', err);
-    onUpdate(cachedLeaderboard);
-    return () => {};
-  }
+  return () => {
+    updateListeners.delete(onUpdate);
+    clearInterval(timer);
+  };
 }
 
 /**
- * Add a new high score entry to the shared global Firestore database.
+ * Add a new high score entry to both local storage and the shared server database.
  */
 export async function addLeaderboardEntry(
   initials: string,
@@ -117,63 +163,139 @@ export async function addLeaderboardEntry(
   maxSpeed: number,
   skinName: string
 ): Promise<{ updatedLeaderboard: LeaderboardEntry[]; newRank: number; entryId: string }> {
-  const cleanInitials = (initials || 'AAA').toUpperCase().slice(0, 3).padEnd(3, 'A');
+  const cleanInitials = (initials || getLastPilotInitials() || 'TAV')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 3)
+    .padEnd(3, 'A');
+
   saveLastPilotInitials(cleanInitials);
-
-  // Ensure user is authenticated (anonymous sign-in)
-  let userUid = auth.currentUser?.uid;
-  if (!userUid) {
-    try {
-      const user = await ensureAuthUser();
-      userUid = user.uid;
-    } catch {
-      userUid = `anon-${Math.random().toString(36).slice(2, 8)}`;
-    }
-  }
-
-  const cleanDocId = `pilot-${Date.now()}-${userUid.slice(0, 6)}`.replace(/[^a-zA-Z0-9_-]/g, '');
+  const myPlayerId = getOrCreatePlayerId();
+  const entryId = `pilot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
   const newEntry: LeaderboardEntry = {
-    id: cleanDocId,
+    id: entryId,
     initials: cleanInitials,
     score: Math.round(score),
     maxSpeed: Math.round(maxSpeed),
-    skinName: skinName.slice(0, 50),
+    skinName: (skinName || 'Tesla Roadster').slice(0, 50),
     date: new Date().toISOString().slice(0, 10),
-    userId: userUid,
     isPlayer: true
   };
 
-  // Optimistic local update
-  const updatedLocal = [...cachedLeaderboard.filter((e) => e.id !== cleanDocId), newEntry]
+  // Immediate optimistic local update
+  const updatedLocal = [...cachedLeaderboard.filter((e) => e.id !== entryId), newEntry]
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
+
   saveLeaderboard(updatedLocal);
+  notifyListeners(updatedLocal);
 
-  const newRank = updatedLocal.findIndex((e) => e.id === cleanDocId) + 1;
+  const newRank = updatedLocal.findIndex((e) => e.id === entryId) + 1;
 
-  // Persist to Cloud Firestore database
+  // Sync to shared backend server
   try {
-    await setDoc(doc(db, 'leaderboard_entries', cleanDocId), {
-      initials: cleanInitials,
-      score: Math.round(score),
-      maxSpeed: Math.round(maxSpeed),
-      skinName: skinName.slice(0, 50),
-      date: new Date().toISOString().slice(0, 10),
-      userId: userUid,
-      createdAt: new Date().toISOString()
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        initials: cleanInitials,
+        score: Math.round(score),
+        maxSpeed: Math.round(maxSpeed),
+        skinName,
+        date: newEntry.date,
+        playerId: myPlayerId
+      })
     });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.entries)) {
+        const mapped: LeaderboardEntry[] = data.entries.map((e: any) => ({
+          id: String(e.id),
+          initials: String(e.initials || 'AAA').toUpperCase().slice(0, 3),
+          score: Number(e.score) || 0,
+          maxSpeed: Number(e.maxSpeed) || 0,
+          skinName: String(e.skinName || 'Tesla Roadster'),
+          date: String(e.date || new Date().toISOString().slice(0, 10)),
+          isPlayer: Boolean(e.id === entryId || (e.playerId && e.playerId === myPlayerId))
+        }));
+        const serverSorted = mapped.sort((a, b) => b.score - a.score).slice(0, 10);
+        notifyListeners(serverSorted);
+      }
+    }
   } catch (err) {
-    console.error('Failed to sync score to shared Cloud Firestore:', err);
+    console.warn('Network sync notice (local score recorded successfully):', err);
   }
 
-  return { updatedLeaderboard: updatedLocal, newRank, entryId: cleanDocId };
+  return { updatedLeaderboard: updatedLocal, newRank, entryId };
+}
+
+/**
+ * Update callsign / initials on recorded entries and sync
+ */
+export async function updateLeaderboardEntryInitials(
+  newInitials: string,
+  entryId?: string | null
+): Promise<LeaderboardEntry[]> {
+  const clean = (newInitials || 'TAV')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 3)
+    .padEnd(3, 'A');
+
+  saveLastPilotInitials(clean);
+  const myPlayerId = getOrCreatePlayerId();
+
+  // Optimistic update of local cache
+  cachedLeaderboard = cachedLeaderboard.map((e) => {
+    if ((entryId && e.id === entryId) || e.isPlayer) {
+      return { ...e, initials: clean };
+    }
+    return e;
+  });
+
+  saveLeaderboard(cachedLeaderboard);
+  notifyListeners(cachedLeaderboard);
+
+  try {
+    const res = await fetch('/api/leaderboard/update-initials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryId: entryId || undefined,
+        initials: clean,
+        playerId: myPlayerId
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.entries)) {
+        const mapped: LeaderboardEntry[] = data.entries.map((e: any) => ({
+          id: String(e.id),
+          initials: String(e.initials || 'AAA').toUpperCase().slice(0, 3),
+          score: Number(e.score) || 0,
+          maxSpeed: Number(e.maxSpeed) || 0,
+          skinName: String(e.skinName || 'Tesla Roadster'),
+          date: String(e.date || new Date().toISOString().slice(0, 10)),
+          isPlayer: Boolean((entryId && e.id === entryId) || (e.playerId && e.playerId === myPlayerId))
+        }));
+        const serverSorted = mapped.sort((a, b) => b.score - a.score).slice(0, 10);
+        notifyListeners(serverSorted);
+      }
+    }
+  } catch (err) {
+    console.warn('Network sync notice (initials updated locally):', err);
+  }
+
+  return cachedLeaderboard;
 }
 
 export function resetLeaderboard(): LeaderboardEntry[] {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(LEADERBOARD_STORAGE_KEY);
   }
-  cachedLeaderboard = [];
-  return [];
+  cachedLeaderboard = [...DEFAULT_LEADERBOARD];
+  notifyListeners(cachedLeaderboard);
+  return cachedLeaderboard;
 }

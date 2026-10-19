@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trophy, Medal, RotateCcw, User, PlusCircle } from 'lucide-react';
+import { X, Trophy, Check, Edit3, RotateCcw } from 'lucide-react';
 import { GameLogo } from './ui/GameLogo';
 import { GameStats, LeaderboardEntry } from '../types/game';
-import { getLeaderboard, addLeaderboardEntry, getLastPilotInitials, resetLeaderboard, subscribeToSharedLeaderboard } from '../utils/leaderboard';
-import { ArcadeInitialsInput } from './ui/ArcadeInitialsInput';
+import {
+  getLeaderboard,
+  getLastPilotInitials,
+  updateLeaderboardEntryInitials,
+  resetLeaderboard,
+  subscribeToSharedLeaderboard
+} from '../utils/leaderboard';
 import { ShantiisanFooter } from './ui/ShantiisanFooter';
 
 interface LeaderboardModalProps {
@@ -11,167 +16,136 @@ interface LeaderboardModalProps {
   currentRunScore?: number;
   currentRunSpeed?: number;
   currentSkinName?: string;
+  activeEntryId?: string;
+  activeRank?: number;
   onClose: () => void;
 }
 
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   stats,
   currentRunScore,
-  currentRunSpeed,
-  currentSkinName = 'Tesla Roadster',
+  activeEntryId,
   onClose
 }) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>(() => getLeaderboard());
-  const [showInput, setShowInput] = useState<boolean>(() => {
-    // Show input automatically if player has an unsubmitted run score > 0
-    return (currentRunScore !== undefined && currentRunScore > 0);
-  });
-  const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [initials, setInitials] = useState<string>(() => getLastPilotInitials());
+  const [isEditingCallsign, setIsEditingCallsign] = useState(false);
 
   useEffect(() => {
-    // Set immediate cached state
     setEntries(getLeaderboard());
-
-    // Subscribe to live shared Firestore updates
-    const unsubscribe = subscribeToSharedLeaderboard((liveEntries) => {
-      setEntries(liveEntries);
+    const unsubscribe = subscribeToSharedLeaderboard((live) => {
+      setEntries(live);
     });
-
     return () => unsubscribe();
   }, []);
 
-  const handleInitialsSubmit = async (initials: string) => {
-    const scoreToRecord = currentRunScore !== undefined && currentRunScore > 0 ? currentRunScore : stats.highScore;
-    const speedToRecord = currentRunSpeed !== undefined && currentRunSpeed > 0 ? currentRunSpeed : stats.maxSpeed;
+  const activeRunScore = currentRunScore !== undefined && currentRunScore > 0 ? currentRunScore : 0;
+  const bestScore = Math.max(stats.highScore, activeRunScore);
 
-    const { updatedLeaderboard, entryId } = await addLeaderboardEntry(
-      initials,
-      scoreToRecord,
-      speedToRecord,
-      currentSkinName
-    );
+  const handleInitialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    setInitials(val);
+  };
 
-    setEntries(updatedLeaderboard);
-    setShowInput(false);
-    setSubmittedId(entryId);
+  const handleCommitInitials = async () => {
+    setIsEditingCallsign(false);
+    const clean = (initials || 'TAV').toUpperCase().slice(0, 3);
+    const updated = await updateLeaderboardEntryInitials(clean, activeEntryId);
+    setEntries(updated);
   };
 
   const handleResetScores = () => {
-    if (window.confirm('Reset arcade high score leaderboard to factory defaults?')) {
+    if (window.confirm('Reset arcade leaderboard to default factory records?')) {
       const reset = resetLeaderboard();
       setEntries(reset);
-      setSubmittedId(null);
     }
   };
 
-  // Find player rank among entries
-  const playerTopScore = Math.max(stats.highScore, currentRunScore || 0);
-  const playerRank = entries.length > 0 ? entries.filter((e) => e.score > playerTopScore).length + 1 : 1;
+  // Find player rank in current standings
+  const playerRank = entries.length > 0 ? entries.filter((e) => e.score > bestScore).length + 1 : 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-sm select-none overflow-y-auto">
-      <div className="bg-[#050505] border border-neutral-800 max-w-lg w-full p-4 sm:p-6 shadow-2xl flex flex-col max-h-[92vh] relative my-auto">
-        {/* Technical Corner Registration Marks */}
-        <div className="absolute top-1 left-1 font-mono text-[9px] text-neutral-600">⌜ PILOT-LOG ⌝</div>
-        <div className="absolute top-1 right-1 font-mono text-[9px] text-neutral-600">⌞ RANK-01 ⌟</div>
-
-        {/* Flippy Roadster Game Logo */}
-        <div className="flex flex-col items-center mb-2">
-          <GameLogo size="sm" showSubtitle={false} className="drop-shadow-[0_0_16px_rgba(232,33,39,0.7)]" />
-        </div>
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md select-none overflow-y-auto">
+      <div className="bg-[#0a0a0a] border border-neutral-800 max-w-lg w-full p-4 sm:p-5 shadow-2xl flex flex-col max-h-[92vh] relative my-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-2.5 border-b border-neutral-800">
           <div className="flex items-center gap-2.5">
-            <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-oxanium font-bold text-base sm:text-lg text-white uppercase tracking-wider">
-                  ARCADE HIGH SCORES
-                </h2>
-                <span className="font-mono text-[9px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 border border-amber-500/30">
-                  TOP 10
-                </span>
-                <span className="flex items-center gap-1 font-mono text-[8px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 border border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  SHARED CLOUD
-                </span>
-              </div>
-              <div className="font-kanji text-[10px] text-neutral-400">
-                世界共有殿堂 · リアルタイム反映
-              </div>
-            </div>
+            <Trophy className="w-5 h-5 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+            <h2 className="font-oxanium font-bold text-base sm:text-lg text-white uppercase tracking-wider">
+              ARCADE HIGH SCORES
+            </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
 
-        {/* Optional 3-Letter Initials Input Section */}
-        {showInput ? (
-          <div className="my-3 flex flex-col items-center">
-            <ArcadeInitialsInput
-              initialValue={getLastPilotInitials()}
-              score={currentRunScore !== undefined && currentRunScore > 0 ? currentRunScore : stats.highScore}
-              onSubmit={handleInitialsSubmit}
-            />
+          <div className="flex items-center gap-2">
+            <GameLogo size="xs" showSubtitle={false} />
             <button
-              onClick={() => setShowInput(false)}
-              className="mt-2 text-[10px] font-mono text-neutral-500 hover:text-neutral-300 underline cursor-pointer"
+              onClick={onClose}
+              className="p-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
             >
-              Skip to Leaderboard &rarr;
+              <X className="w-4 h-4" />
             </button>
           </div>
-        ) : (
-          /* Active Pilot Status Banner */
-          <div className="my-2.5 bg-neutral-950 border border-amber-500/40 p-2.5 sm:p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-amber-500/10 text-amber-300 flex items-center justify-center border border-amber-500/30">
-                <User className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-oxanium font-bold text-xs text-white">YOUR CALLSIGN</span>
-                  <span className="font-mono text-[9px] text-amber-400 font-bold bg-neutral-900 px-1 border border-neutral-800">
-                    [{getLastPilotInitials()}]
-                  </span>
-                </div>
-                <div className="text-[10px] font-mono text-neutral-400">
-                  STANDINGS: #{playerRank <= 10 ? playerRank : '>10'} &middot; {stats.totalRuns} MISSIONS
-                </div>
-              </div>
-            </div>
+        </div>
 
-            <div className="flex items-center gap-2">
-              <div className="text-right">
-                <div className="font-doto text-lg sm:text-xl text-amber-300 tabular-nums font-bold leading-none">
-                  {playerTopScore} <span className="font-oxanium text-[10px] text-amber-400 font-normal">FT</span>
-                </div>
-                <div className="text-[8px] font-mono text-neutral-500">BEST RECORD</div>
+        {/* Streamlined Callsign Bar (Unobtrusive & Centered on the Standings) */}
+        <div className="my-2 p-2 bg-neutral-950 flex flex-wrap items-center justify-between gap-2 border border-neutral-900">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">CALLSIGN:</span>
+            {isEditingCallsign ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={initials}
+                  onChange={handleInitialsChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCommitInitials();
+                  }}
+                  maxLength={3}
+                  autoFocus
+                  placeholder="TAV"
+                  className="w-14 bg-black border border-amber-400 text-amber-300 font-doto font-bold text-sm text-center uppercase tracking-widest px-1 py-0.5 outline-none"
+                />
+                <button
+                  onClick={handleCommitInitials}
+                  className="p-1 bg-amber-500/20 text-amber-300 cursor-pointer"
+                  title="Save callsign"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
               </div>
-
-              {/* Enter Initials Trigger Button */}
+            ) : (
               <button
                 type="button"
-                onClick={() => setShowInput(true)}
-                className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:border-amber-400 text-[10px] font-oxanium font-bold transition-all cursor-pointer flex items-center gap-1"
-                title="Enter 3-Letter Callsign"
+                onClick={() => setIsEditingCallsign(true)}
+                className="group flex items-center gap-1.5 bg-black px-2 py-0.5 border border-neutral-800 hover:border-amber-400 transition-colors cursor-pointer"
+                title="Tap to edit pilot initials"
               >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">EDIT</span>
+                <span className="font-doto font-bold text-sm tracking-widest text-amber-300">
+                  {initials || 'TAV'}
+                </span>
+                <Edit3 className="w-3 h-3 text-neutral-500 group-hover:text-amber-300 transition-colors" />
               </button>
-            </div>
+            )}
           </div>
-        )}
 
-        {/* Global Standings Table */}
-        <div className="flex-1 overflow-y-auto space-y-1 my-1 pr-1 max-h-[46vh]">
-          <div className="flex items-center justify-between text-[9px] font-mono text-neutral-500 uppercase tracking-wider pb-1 border-b border-neutral-900">
+          <div className="text-[10px] font-mono text-neutral-400 flex items-center gap-2">
+            {activeRunScore > 0 ? (
+              <span className="text-amber-300 font-oxanium font-bold">
+                LAST RUN: {activeRunScore.toLocaleString()} FT (RANK #{playerRank})
+              </span>
+            ) : (
+              <span>
+                BEST: <span className="text-white font-bold font-oxanium">{bestScore.toLocaleString()} FT</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Leaderboard Table (The Dominant Centerpiece) */}
+        <div className="flex-1 overflow-y-auto space-y-1 my-1 pr-1 max-h-[50vh]">
+          <div className="flex items-center justify-between text-[9px] font-mono text-neutral-400 uppercase tracking-wider pb-1 border-b border-neutral-900">
             <span>RANK &middot; PILOT &middot; VEHICLE</span>
-            <span>DISTANCE CLEARED</span>
+            <span>DISTANCE</span>
           </div>
 
           {Array.from({ length: 10 }, (_, index) => {
@@ -181,37 +155,29 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               return (
                 <div
                   key={`empty-${rank}`}
-                  className="flex items-center justify-between p-2 bg-neutral-950/40 border border-neutral-900/60 text-neutral-600"
+                  className="flex items-center justify-between p-2 bg-neutral-950/20 text-neutral-700 text-xs"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-oxanium text-xs w-6 text-center shrink-0 text-neutral-600">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-oxanium text-xs w-6 text-center text-neutral-700">
                       #{rank.toString().padStart(2, '0')}
                     </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="font-doto font-bold text-xs sm:text-sm tracking-widest text-neutral-600 bg-black px-1.5 py-0.5 border border-neutral-900">
-                        ---
-                      </span>
-                    </div>
-                    <div className="text-[9px] font-mono text-neutral-600 truncate">
-                      [EMPTY SLOT &middot; AWAITING PILOT]
-                    </div>
+                    <span className="font-doto text-xs tracking-widest text-neutral-800">---</span>
+                    <span className="text-[9px] font-mono text-neutral-700">[EMPTY SLOT]</span>
                   </div>
-                  <div className="text-right shrink-0 ml-2 font-mono text-[10px] text-neutral-700 tabular-nums">
-                    --- FT
-                  </div>
+                  <div className="font-mono text-[10px] text-neutral-800">--- FT</div>
                 </div>
               );
             }
 
-            const isHighlighted = entry.id === submittedId || entry.isPlayer;
+            const isHighlighted = (activeEntryId && entry.id === activeEntryId) || entry.isPlayer;
 
             return (
               <div
                 key={entry.id}
-                className={`flex items-center justify-between p-2 transition-all ${
+                className={`flex items-center justify-between p-2 transition-colors ${
                   isHighlighted
-                    ? 'bg-amber-500/10 border border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
-                    : 'bg-black border border-neutral-900 hover:border-neutral-800'
+                    ? 'bg-amber-500/10 border border-amber-400/80 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                    : 'bg-black/80 hover:bg-neutral-950'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -231,18 +197,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   </span>
 
                   {/* 3-Letter Initials */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="font-doto font-bold text-sm sm:text-base tracking-widest text-amber-300 bg-neutral-950 px-1.5 py-0.5 border border-neutral-800">
-                      {entry.initials}
-                    </span>
-                  </div>
+                  <span className="font-doto font-bold text-sm tracking-widest text-amber-300 bg-neutral-950 px-1.5 py-0.5 border border-neutral-900 shrink-0">
+                    {entry.initials}
+                  </span>
 
                   {/* Vehicle Skin and Spec Info */}
                   <div className="min-w-0 truncate">
                     <div className="font-oxanium font-bold text-xs text-neutral-200 truncate flex items-center gap-1.5">
                       <span>{entry.skinName}</span>
                       {entry.isPlayer && (
-                        <span className="text-[8px] font-mono text-cyan-400 border border-cyan-500/40 px-1">
+                        <span className="text-[8px] font-mono text-amber-400 border border-amber-500/40 px-1 bg-amber-500/10">
                           YOU
                         </span>
                       )}
@@ -256,7 +220,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 {/* Score in FT */}
                 <div className="text-right shrink-0 ml-2">
                   <div className="font-doto font-bold text-sm sm:text-base text-white tabular-nums">
-                    {entry.score.toLocaleString()} <span className="text-[9px] text-amber-400 font-normal font-oxanium">FT</span>
+                    {entry.score.toLocaleString()}{' '}
+                    <span className="text-[9px] text-amber-400 font-normal font-oxanium">FT</span>
                   </div>
                 </div>
               </div>
@@ -279,12 +244,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             onClick={onClose}
             className="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-oxanium font-bold text-xs border border-neutral-700 cursor-pointer transition-colors"
           >
-            DISMISS &middot; 閉じる
+            DISMISS
           </button>
         </div>
 
-        {/* Shantiisan Official Copyright */}
-        <div className="mt-2 pt-2 border-t border-neutral-900">
+        {/* Clean Shantiisan Official Copyright with TAV Logo */}
+        <div className="mt-2.5 pt-2 border-t border-neutral-900/80">
           <ShantiisanFooter />
         </div>
       </div>

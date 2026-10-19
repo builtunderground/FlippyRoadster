@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7 2" width="28" height="8" shape-rendering="crispEdges" aria-label="TAV Logo">
+  <!-- TAV Pixel Logo by Tristan Alain Vogt -->
+  <!-- T: top bar 3 blocks, center stem 1 block -->
+  <rect x="0" y="0" width="3" height="1" fill="#E82127" />
+  <rect x="1" y="1" width="1" height="1" fill="#E82127" />
+  <!-- AV ligature: alternating 1x1 pixel squares -->
+  <rect x="3" y="1" width="1" height="1" fill="#E82127" />
+  <rect x="4" y="0" width="1" height="1" fill="#E82127" />
+  <rect x="5" y="1" width="1" height="1" fill="#E82127" />
+  <rect x="6" y="0" width="1" height="1" fill="#E82127" />
+</svg>

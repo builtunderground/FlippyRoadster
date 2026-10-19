@@ -1,0 +1,42 @@
+[
+  {
+    "id": "entry-1",
+    "initials": "TAV",
+    "score": 2840,
+    "maxSpeed": 820,
+    "skinName": "Starman Edition",
+    "date": "2026-03-24"
+  },
+  {
+    "id": "entry-2",
+    "initials": "ELN",
+    "score": 2420,
+    "maxSpeed": 780,
+    "skinName": "Tesla Roadster",
+    "date": "2026-03-14"
+  },
+  {
+    "id": "entry-3",
+    "initials": "SPX",
+    "score": 1980,
+    "maxSpeed": 740,
+    "skinName": "SpaceX Starhopper",
+    "date": "2026-03-18"
+  },
+  {
+    "id": "entry-4",
+    "initials": "CYB",
+    "score": 1650,
+    "maxSpeed": 690,
+    "skinName": "Cyber Roadster",
+    "date": "2026-03-21"
+  },
+  {
+    "id": "entry-5",
+    "initials": "RSX",
+    "score": 1240,
+    "maxSpeed": 610,
+    "skinName": "Midnight Cherry",
+    "date": "2026-03-10"
+  }
+]

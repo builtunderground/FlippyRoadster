@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Arcade Hall of Fame high score record for Flippy Roadster",
+      "type": "object",
+      "properties": {
+        "initials": {
+          "type": "string",
+          "description": "3-letter pilot initials/callsign",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "score": {
+          "type": "integer",
+          "description": "Distance cleared in feet"
+        },
+        "maxSpeed": {
+          "type": "integer",
+          "description": "Max speed achieved in MPH"
+        },
+        "skinName": {
+          "type": "string",
+          "description": "Name of the vehicle skin used"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date when record was achieved"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the authenticated or anonymous player"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when record was created"
+        }
+      },
+      "required": ["initials", "score", "maxSpeed", "skinName", "date", "userId"]
+    }
+  },
+  "firestore": {
+    "/leaderboard_entries/{entryId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Shared arcade high score records accessible to all players"
+    }
+  }
+}

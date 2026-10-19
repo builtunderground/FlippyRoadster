@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameState, GamePhase, Skin, ThrusterColor, GameStats } from './types/game';
 import { SKINS, THRUSTER_COLORS } from './utils/pixelRenderer';
 import { soundEngine } from './utils/audio';
@@ -16,6 +16,7 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal } from './components/SettingsModal';
 import { GameLogo } from './components/ui/GameLogo';
 import { OptimusBot } from './components/ui/OptimusBot';
+import { addLeaderboardEntry, getLastPilotInitials } from './utils/leaderboard';
 
 const STATS_KEY = 'flippy_roadster_stats_v1';
 const SKIN_KEY = 'flippy_roadster_skin_v1';
@@ -43,8 +44,16 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
 
-  // Last Run Results
-  const [lastRunStats, setLastRunStats] = useState({
+  // Last Run Results with automatic leaderboard rank & entry tracking
+  const [lastRunStats, setLastRunStats] = useState<{
+    score: number;
+    maxSpeed: number;
+    rolls: number;
+    isNewHigh: boolean;
+    quote: string;
+    leaderboardRank?: number;
+    entryId?: string;
+  }>({
     score: 0,
     maxSpeed: 250,
     rolls: 0,
@@ -140,6 +149,11 @@ export default function App() {
     []
   );
 
+  const currentSkinRef = useRef(currentSkin);
+  useEffect(() => {
+    currentSkinRef.current = currentSkin;
+  }, [currentSkin]);
+
   // Handle Game Over
   const handleGameOver = useCallback(
     (finalScore: number, maxRunSpeed: number, rollCount: number) => {
@@ -177,6 +191,20 @@ export default function App() {
           isNewHigh,
           quote: randomQuote
         });
+
+        // Automatically record to shared arcade leaderboard
+        if (finalScore > 0) {
+          const pilotInitials = getLastPilotInitials();
+          addLeaderboardEntry(pilotInitials, finalScore, maxRunSpeed, currentSkinRef.current.name)
+            .then(({ newRank, entryId }) => {
+              setLastRunStats((curr) => ({
+                ...curr,
+                leaderboardRank: newRank,
+                entryId
+              }));
+            })
+            .catch(() => {});
+        }
 
         return {
           highScore: newHighScore,
@@ -396,6 +424,8 @@ export default function App() {
           currentRunScore={lastRunStats.score}
           currentRunSpeed={lastRunStats.maxSpeed}
           currentSkinName={currentSkin.name}
+          activeEntryId={lastRunStats.entryId}
+          activeRank={lastRunStats.leaderboardRank}
           onClose={() => setShowLeaderboard(false)}
         />
       )}
@@ -422,6 +452,7 @@ export default function App() {
           barrelRolls={lastRunStats.rolls}
           currentSkin={currentSkin}
           quote={lastRunStats.quote}
+          leaderboardRank={lastRunStats.leaderboardRank}
           onRestart={handleStartRun}
           onOpenLeaderboard={() => setShowLeaderboard(true)}
           onMainMenu={() => {
