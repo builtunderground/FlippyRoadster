@@ -16,19 +16,18 @@ export const auth = getAuth(app);
 
 // Keep track of current user
 let currentUser: User | null = null;
-let authPromise: Promise<User> | null = null;
+let authPromise: Promise<User | null> | null = null;
 
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
 });
 
-// Ensure anonymous auth for transparent background identity
-export async function ensureAuthUser(): Promise<User> {
+// Try anonymous auth if available, but never block or fail callers if restricted
+export async function ensureAuthUser(): Promise<User | null> {
   if (currentUser) return currentUser;
   if (authPromise) return authPromise;
 
-  authPromise = new Promise((resolve, reject) => {
-    // If already has currentUser synchronously
+  authPromise = new Promise<User | null>((resolve) => {
     if (auth.currentUser) {
       currentUser = auth.currentUser;
       resolve(auth.currentUser);
@@ -41,9 +40,9 @@ export async function ensureAuthUser(): Promise<User> {
         resolve(cred.user);
       })
       .catch((err) => {
-        console.warn('Anonymous auth note:', err);
-        // Retry once or reject
-        reject(err);
+        // Anonymous sign-in may be disabled in console; arcade leaderboard works without it
+        console.debug('Firebase auth notice (running arcade mode without auth requirement):', err?.code || err);
+        resolve(null);
       })
       .finally(() => {
         authPromise = null;
@@ -53,7 +52,7 @@ export async function ensureAuthUser(): Promise<User> {
   return authPromise;
 }
 
-// Pre-warm anonymous auth in the background
+// Background attempt
 ensureAuthUser().catch(() => {});
 
 // Test connection on boot per Firebase skill guidelines

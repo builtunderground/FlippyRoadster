@@ -19,6 +19,22 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+// Connect to Firestore if configuration is present
+let firestoreDb: any = null;
+try {
+  const configPath = path.join(__dirname, 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const { initializeApp, getApps, getApp } = await import('firebase/app');
+    const { getFirestore } = await import('firebase/firestore');
+    const serverApp = getApps().length > 0 ? getApp() : initializeApp(config, 'server-side-app');
+    firestoreDb = getFirestore(serverApp, config.firestoreDatabaseId);
+    console.log('Server connected to Firestore database:', config.firestoreDatabaseId);
+  }
+} catch (e) {
+  console.warn('Server Firestore initialization note:', e);
+}
+
 // Initial leaderboard entries (seeded with legendary SpaceX / Roadster runs)
 const DEFAULT_LEADERBOARD = [
   { id: 'entry-1', initials: 'TAV', score: 2840, maxSpeed: 820, skinName: 'Starman Edition', date: '2026-03-24' },
@@ -53,14 +69,44 @@ function writeLeaderboard(entries: any[]): void {
   }
 }
 
-// GET /api/leaderboard: retrieve current global top 10
-app.get('/api/leaderboard', (req, res) => {
+// GET /api/leaderboard: retrieve current global top 10 from Firestore (with local fallback)
+app.get('/api/leaderboard', async (req, res) => {
+  if (firestoreDb) {
+    try {
+      const { collection, getDocs } = await import('firebase/firestore');
+      const snap = await getDocs(collection(firestoreDb, 'leaderboard_entries'));
+      const liveEntries: any[] = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        if (typeof data.score === 'number' && data.score > 0) {
+          liveEntries.push({
+            id: d.id,
+            initials: String(data.initials || 'AAA').toUpperCase().slice(0, 3),
+            score: Number(data.score) || 0,
+            maxSpeed: Number(data.maxSpeed) || 0,
+            skinName: String(data.skinName || 'Tesla Roadster'),
+            date: String(data.date || new Date().toISOString().slice(0, 10)),
+            playerId: String(data.playerId || data.userId || '')
+          });
+        }
+      });
+
+      if (liveEntries.length > 0) {
+        const sorted = liveEntries.sort((a, b) => b.score - a.score).slice(0, 10);
+        writeLeaderboard(sorted);
+        return res.json({ success: true, entries: sorted });
+      }
+    } catch (err) {
+      console.warn('Server Firestore getDocs note, using local fallback:', err);
+    }
+  }
+
   const entries = readLeaderboard();
   res.json({ success: true, entries });
 });
 
-// POST /api/leaderboard: submit new high score record
-app.post('/api/leaderboard', (req, res) => {
+// POST /api/leaderboard: submit new high score record to Firestore and local storage
+app.post('/api/leaderboard', async (req, res) => {
   try {
     const { id, initials, score, maxSpeed, skinName, date, playerId } = req.body;
 
@@ -89,6 +135,19 @@ app.post('/api/leaderboard', (req, res) => {
       playerId: String(playerId || '')
     };
 
+    // Save to Firestore globally
+    if (firestoreDb) {
+      try {
+        const { doc, setDoc } = await import('firebase/firestore');
+        await setDoc(doc(firestoreDb, 'leaderboard_entries', newEntryId), {
+          ...newEntry,
+          createdAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('Server Firestore setDoc note:', err);
+      }
+    }
+
     // Filter out if exact id already existed to avoid duplicates
     const filtered = currentEntries.filter((e) => e.id !== newEntryId);
     const updated = [...filtered, newEntry]
@@ -105,8 +164,8 @@ app.post('/api/leaderboard', (req, res) => {
   }
 });
 
-// POST /api/leaderboard/update-initials: update pilot callsign on their records
-app.post('/api/leaderboard/update-initials', (req, res) => {
+// POST /api/leaderboard/update-initials: update pilot callsign on their records in Firestore and local storage
+app.post('/api/leaderboard/update-initials', async (req, res) => {
   try {
     const { entryId, initials, playerId } = req.body;
     const clean = String(initials || 'TAV')
@@ -115,6 +174,18 @@ app.post('/api/leaderboard/update-initials', (req, res) => {
       .replace(/[^A-Z0-9]/g, '')
       .slice(0, 3)
       .padEnd(3, 'A');
+
+    // Update in Firestore
+    if (firestoreDb && entryId) {
+      try {
+        const { doc, updateDoc } = await import('firebase/firestore');
+        await updateDoc(doc(firestoreDb, 'leaderboard_entries', entryId), {
+          initials: clean
+        });
+      } catch (err) {
+        console.warn('Server Firestore updateDoc note:', err);
+      }
+    }
 
     const currentEntries = readLeaderboard();
     let updated = currentEntries.map((e) => {

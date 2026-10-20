@@ -20,7 +20,8 @@ import {
   addLeaderboardEntry,
   getLastPilotInitials,
   saveLastPilotInitials,
-  updateLeaderboardEntryInitials
+  updateLeaderboardEntryInitials,
+  subscribeToSharedLeaderboard
 } from './utils/leaderboard';
 
 const STATS_KEY = 'flippy_roadster_stats_v1';
@@ -156,9 +157,17 @@ export default function App() {
   );
 
   const currentSkinRef = useRef(currentSkin);
+  const lastRecordedEntryIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     currentSkinRef.current = currentSkin;
   }, [currentSkin]);
+
+  // Subscribe to global arcade leaderboard on app mount so all browsers and incognito tabs have live scores
+  useEffect(() => {
+    const unsub = subscribeToSharedLeaderboard(() => {});
+    return () => unsub();
+  }, []);
 
   // Handle Game Over
   const handleGameOver = useCallback(
@@ -201,6 +210,7 @@ export default function App() {
         const pilotInitials = getLastPilotInitials();
         addLeaderboardEntry(pilotInitials, finalScore, maxRunSpeed, currentSkinRef.current.name)
           .then(({ newRank, entryId }) => {
+            lastRecordedEntryIdRef.current = entryId;
             setLastRunStats((curr) => ({
               ...curr,
               leaderboardRank: newRank,
@@ -218,7 +228,8 @@ export default function App() {
   const handleUpdateInitials = useCallback(
     (newInitials: string) => {
       saveLastPilotInitials(newInitials);
-      updateLeaderboardEntryInitials(newInitials, lastRunStats.entryId).catch(() => {});
+      const targetId = lastRunStats.entryId || lastRecordedEntryIdRef.current;
+      updateLeaderboardEntryInitials(newInitials, targetId).catch(() => {});
     },
     [lastRunStats.entryId]
   );

@@ -115,19 +115,22 @@ export async function syncSharedLeaderboard(): Promise<LeaderboardEntry[]> {
     const liveEntries: LeaderboardEntry[] = [];
     snap.forEach((docSnap) => {
       const d = docSnap.data();
-      liveEntries.push({
-        id: docSnap.id,
-        initials: String(d.initials || 'AAA').toUpperCase().slice(0, 3),
-        score: Number(d.score) || 0,
-        maxSpeed: Number(d.maxSpeed) || 0,
-        skinName: String(d.skinName || 'Tesla Roadster'),
-        date: String(d.date || new Date().toISOString().slice(0, 10)),
-        isPlayer: Boolean((d.userId && d.userId === myPid) || (d.playerId && d.playerId === myPid))
-      });
+      if (typeof d.score === 'number' && d.score > 0) {
+        liveEntries.push({
+          id: docSnap.id,
+          initials: String(d.initials || 'AAA').toUpperCase().slice(0, 3),
+          score: Number(d.score) || 0,
+          maxSpeed: Number(d.maxSpeed) || 0,
+          skinName: String(d.skinName || 'Tesla Roadster'),
+          date: String(d.date || new Date().toISOString().slice(0, 10)),
+          isPlayer: Boolean((d.userId && d.userId === myPid) || (d.playerId && d.playerId === myPid))
+        });
+      }
     });
 
     if (liveEntries.length > 0) {
       const sorted = liveEntries.sort((a, b) => b.score - a.score).slice(0, 10);
+      cachedLeaderboard = sorted;
       saveLeaderboard(sorted);
       notifyListeners(sorted);
       return sorted;
@@ -155,6 +158,8 @@ export async function syncSharedLeaderboard(): Promise<LeaderboardEntry[]> {
 
         const sorted = mapped.sort((a, b) => b.score - a.score).slice(0, 10);
         if (sorted.length > 0) {
+          cachedLeaderboard = sorted;
+          saveLeaderboard(sorted);
           notifyListeners(sorted);
           return sorted;
         }
@@ -176,9 +181,6 @@ export function subscribeToSharedLeaderboard(
   // Send current cached value immediately
   onUpdate(cachedLeaderboard);
 
-  // Ensure background anonymous auth
-  ensureAuthUser().catch(() => {});
-
   // Real-time Firestore snapshot listener across all players globally
   let unsubscribeFirestore: (() => void) | null = null;
   try {
@@ -190,15 +192,17 @@ export function subscribeToSharedLeaderboard(
         const liveEntries: LeaderboardEntry[] = [];
         snapshot.forEach((docSnap) => {
           const d = docSnap.data();
-          liveEntries.push({
-            id: docSnap.id,
-            initials: String(d.initials || 'AAA').toUpperCase().slice(0, 3),
-            score: Number(d.score) || 0,
-            maxSpeed: Number(d.maxSpeed) || 0,
-            skinName: String(d.skinName || 'Tesla Roadster'),
-            date: String(d.date || new Date().toISOString().slice(0, 10)),
-            isPlayer: Boolean((d.userId && d.userId === myPid) || (d.playerId && d.playerId === myPid))
-          });
+          if (typeof d.score === 'number' && d.score > 0) {
+            liveEntries.push({
+              id: docSnap.id,
+              initials: String(d.initials || 'AAA').toUpperCase().slice(0, 3),
+              score: Number(d.score) || 0,
+              maxSpeed: Number(d.maxSpeed) || 0,
+              skinName: String(d.skinName || 'Tesla Roadster'),
+              date: String(d.date || new Date().toISOString().slice(0, 10)),
+              isPlayer: Boolean((d.userId && d.userId === myPid) || (d.playerId && d.playerId === myPid))
+            });
+          }
         });
 
         if (liveEntries.length > 0) {
@@ -209,7 +213,7 @@ export function subscribeToSharedLeaderboard(
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, 'leaderboard_entries');
+        console.warn('Firestore subscription status notice:', error);
       }
     );
   } catch (err) {
@@ -226,6 +230,9 @@ export function subscribeToSharedLeaderboard(
     }
   };
 }
+
+// Most recent entry ID recorded by this client session
+let lastRecordedEntryId: string | null = null;
 
 /**
  * Add a new high score entry to both local storage and the shared server database.
@@ -245,6 +252,7 @@ export async function addLeaderboardEntry(
   saveLastPilotInitials(cleanInitials);
   const myPlayerId = getOrCreatePlayerId();
   const entryId = `pilot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  lastRecordedEntryId = entryId;
 
   const newEntry: LeaderboardEntry = {
     id: entryId,
@@ -266,9 +274,8 @@ export async function addLeaderboardEntry(
 
   const newRank = updatedLocal.findIndex((e) => e.id === entryId) + 1;
 
-  // Save globally to Firestore (shared across all players worldwide in real-time)
+  // Save globally to Firestore directly (shared across all players worldwide in real-time)
   try {
-    await ensureAuthUser();
     const docRef = doc(db, 'leaderboard_entries', entryId);
     await setDoc(docRef, {
       id: entryId,
@@ -282,10 +289,10 @@ export async function addLeaderboardEntry(
       createdAt: new Date().toISOString()
     });
   } catch (err) {
-    console.warn('Firestore setDoc error notice:', err);
+    console.warn('Firestore setDoc notice:', err);
   }
 
-  // Also sync to Express backend as fallback
+  // Also sync to Express backend as fallback and local backup
   try {
     const res = await fetch('/api/leaderboard', {
       method: 'POST',
@@ -314,6 +321,8 @@ export async function addLeaderboardEntry(
           isPlayer: Boolean(e.id === entryId || (e.playerId && e.playerId === myPlayerId))
         }));
         const serverSorted = mapped.sort((a, b) => b.score - a.score).slice(0, 10);
+        cachedLeaderboard = serverSorted;
+        saveLeaderboard(serverSorted);
         notifyListeners(serverSorted);
       }
     }
@@ -339,10 +348,11 @@ export async function updateLeaderboardEntryInitials(
 
   saveLastPilotInitials(clean);
   const myPlayerId = getOrCreatePlayerId();
+  const targetId = entryId || lastRecordedEntryId;
 
   // Optimistic update of local cache
   cachedLeaderboard = cachedLeaderboard.map((e) => {
-    if ((entryId && e.id === entryId) || e.isPlayer) {
+    if ((targetId && e.id === targetId) || e.isPlayer) {
       return { ...e, initials: clean };
     }
     return e;
@@ -352,15 +362,14 @@ export async function updateLeaderboardEntryInitials(
   notifyListeners(cachedLeaderboard);
 
   // Update in Firestore globally
-  try {
-    await ensureAuthUser();
-    if (entryId) {
-      await updateDoc(doc(db, 'leaderboard_entries', entryId), {
+  if (targetId) {
+    try {
+      await updateDoc(doc(db, 'leaderboard_entries', targetId), {
         initials: clean
       });
+    } catch (err) {
+      console.warn('Firestore updateDoc notice:', err);
     }
-  } catch (err) {
-    console.warn('Firestore updateDoc error notice:', err);
   }
 
   // Also sync to Express backend
@@ -369,7 +378,7 @@ export async function updateLeaderboardEntryInitials(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        entryId: entryId || undefined,
+        entryId: targetId || undefined,
         initials: clean,
         playerId: myPlayerId
       })
@@ -384,9 +393,11 @@ export async function updateLeaderboardEntryInitials(
           maxSpeed: Number(e.maxSpeed) || 0,
           skinName: String(e.skinName || 'Tesla Roadster'),
           date: String(e.date || new Date().toISOString().slice(0, 10)),
-          isPlayer: Boolean((entryId && e.id === entryId) || (e.playerId && e.playerId === myPlayerId))
+          isPlayer: Boolean((targetId && e.id === targetId) || (e.playerId && e.playerId === myPlayerId))
         }));
         const serverSorted = mapped.sort((a, b) => b.score - a.score).slice(0, 10);
+        cachedLeaderboard = serverSorted;
+        saveLeaderboard(serverSorted);
         notifyListeners(serverSorted);
       }
     }

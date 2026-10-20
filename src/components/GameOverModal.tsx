@@ -34,17 +34,21 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const [initials, setInitials] = useState(() => getLastPilotInitials());
   const [savedFeedback, setSavedFeedback] = useState(false);
 
-  const handleInitialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
-    setInitials(val);
-  };
-
-  const handleSaveInitials = () => {
-    const clean = (initials || 'TAV').toUpperCase().slice(0, 3);
+  const handleSaveInitials = (override?: string) => {
+    const valToSave = typeof override === 'string' ? override : initials;
+    const clean = (valToSave || 'TAV').toUpperCase().slice(0, 3);
     saveLastPilotInitials(clean);
     onUpdateInitials?.(clean);
     setSavedFeedback(true);
     setTimeout(() => setSavedFeedback(false), 2000);
+  };
+
+  const handleInitialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    setInitials(val);
+    if (val.length === 3) {
+      handleSaveInitials(val);
+    }
   };
 
   return (
@@ -108,7 +112,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                   type="text"
                   value={initials}
                   onChange={handleInitialsChange}
-                  onBlur={handleSaveInitials}
+                  onBlur={() => handleSaveInitials()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveInitials();
                   }}
@@ -118,7 +122,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                 />
                 <button
                   type="button"
-                  onClick={handleSaveInitials}
+                  onClick={() => handleSaveInitials()}
                   className="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-oxanium font-bold border border-amber-500/40 cursor-pointer transition-colors flex items-center gap-1"
                 >
                   {savedFeedback ? <Check className="w-3 h-3 text-emerald-400" /> : null}

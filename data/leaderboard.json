@@ -5,7 +5,8 @@
     "score": 2840,
     "maxSpeed": 820,
     "skinName": "Starman Edition",
-    "date": "2026-03-24"
+    "date": "2026-03-24",
+    "playerId": "pilot-seed-1"
   },
   {
     "id": "entry-2",
@@ -13,7 +14,8 @@
     "score": 2420,
     "maxSpeed": 780,
     "skinName": "Tesla Roadster",
-    "date": "2026-03-14"
+    "date": "2026-03-14",
+    "playerId": "pilot-seed-2"
   },
   {
     "id": "entry-3",
@@ -21,7 +23,8 @@
     "score": 1980,
     "maxSpeed": 740,
     "skinName": "SpaceX Starhopper",
-    "date": "2026-03-18"
+    "date": "2026-03-18",
+    "playerId": "pilot-seed-3"
   },
   {
     "id": "entry-4",
@@ -29,7 +32,8 @@
     "score": 1650,
     "maxSpeed": 690,
     "skinName": "Cyber Roadster",
-    "date": "2026-03-21"
+    "date": "2026-03-21",
+    "playerId": "pilot-seed-4"
   },
   {
     "id": "entry-5",
@@ -37,33 +41,34 @@
     "score": 1240,
     "maxSpeed": 610,
     "skinName": "Midnight Cherry",
-    "date": "2026-03-10"
+    "date": "2026-03-10",
+    "playerId": "pilot-seed-5"
   },
   {
-    "id": "pilot-1792408914916-ac67",
-    "initials": "XYZ",
-    "score": 99,
-    "maxSpeed": 500,
-    "skinName": "Ano White",
-    "date": "2026-10-19",
-    "playerId": "test"
+    "id": "pilot-1792480770251-o69v",
+    "initials": "VIP",
+    "score": 555,
+    "maxSpeed": 620,
+    "skinName": "Starman Edition",
+    "date": "2026-10-20",
+    "playerId": "curl-test-player"
   },
   {
-    "id": "pilot-1792406397176-zr3b",
+    "id": "pilot-test-1792480408625",
+    "initials": "TOP",
+    "score": 123,
+    "maxSpeed": 456,
+    "skinName": "Tesla Roadster",
+    "date": "2026-10-20",
+    "playerId": "test-player"
+  },
+  {
+    "id": "pilot-test-run-6ft",
     "initials": "TAV",
-    "score": 15,
-    "maxSpeed": 509,
+    "score": 6,
+    "maxSpeed": 300,
     "skinName": "Ano White",
     "date": "2026-10-19",
-    "playerId": "pilot-1792401293952-ihzevh"
-  },
-  {
-    "id": "pilot-1792401294471-pban",
-    "initials": "TAV",
-    "score": 4,
-    "maxSpeed": 520,
-    "skinName": "Ano White",
-    "date": "2026-10-19",
-    "playerId": "pilot-1792401293952-ihzevh"
+    "playerId": "test-player-id"
   }
 ]

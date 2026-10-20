@@ -41,16 +41,24 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const activeRunScore = currentRunScore !== undefined && currentRunScore > 0 ? currentRunScore : 0;
   const bestScore = Math.max(stats.highScore, activeRunScore);
 
+  const handleCommitInitials = async (explicit?: string) => {
+    setIsEditingCallsign(false);
+    const clean = (typeof explicit === 'string' ? explicit : initials || 'TAV')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 3)
+      .padEnd(3, 'A');
+    setInitials(clean);
+    const updated = await updateLeaderboardEntryInitials(clean, activeEntryId);
+    setEntries(updated);
+  };
+
   const handleInitialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
     setInitials(val);
-  };
-
-  const handleCommitInitials = async () => {
-    setIsEditingCallsign(false);
-    const clean = (initials || 'TAV').toUpperCase().slice(0, 3);
-    const updated = await updateLeaderboardEntryInitials(clean, activeEntryId);
-    setEntries(updated);
+    if (val.length === 3) {
+      handleCommitInitials(val);
+    }
   };
 
   // Find player rank in current standings
@@ -92,13 +100,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleCommitInitials();
                   }}
+                  onBlur={() => handleCommitInitials()}
                   maxLength={3}
                   autoFocus
                   placeholder="TAV"
                   className="w-14 bg-black border border-amber-400 text-amber-300 font-doto font-bold text-sm text-center uppercase tracking-widest px-1 py-0.5 outline-none"
                 />
                 <button
-                  onClick={handleCommitInitials}
+                  onClick={() => handleCommitInitials()}
                   className="p-1 bg-amber-500/20 text-amber-300 cursor-pointer"
                   title="Save callsign"
                 >
